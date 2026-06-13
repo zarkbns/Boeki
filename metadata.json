@@ -1,0 +1,6 @@
+{
+  "name": "Video Web3 Tutorial RAG Model",
+  "description": "Pivoted into a Personal Trading Analyst Chatbot. Ingests video trading strategies, extracts indicator setups to Firestore, retrieves live market tickers from Coingecko, and synthesizes reports using Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

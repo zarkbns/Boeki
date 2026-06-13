@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "TradingStrategy": {
+      "title": "Trading Strategy Profile",
+      "description": "Structured trading setup parameters extracted from technical video analysis.",
+      "type": "object",
+      "properties": {
+        "strategyName": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "indicators": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "entryConditionsLong": { "type": "string" },
+        "entryConditionsShort": { "type": "string" },
+        "entryConditions": { "type": "string" },
+        "exitConditions": { "type": "string" },
+        "riskRules": { "type": "string" },
+        "rawRulesText": { "type": "string" },
+        "videoId": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "strategyName",
+        "timeframe",
+        "indicators",
+        "exitConditions"
+      ]
+    },
+    "Conversation": {
+      "title": "Conversation History",
+      "description": "User's chat session history containing indicator queries and AI generated messages.",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "indicators": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "messages"]
+    }
+  },
+  "firestore": {
+    "trading_strategies/{stratId}": {
+      "schema": "TradingStrategy",
+      "description": "Stores individual structured trading strategies extracted by Gemini"
+    },
+    "conversations/{convId}": {
+      "schema": "Conversation",
+      "description": "Stores individual conversational context and messages for each user."
+    }
+  }
+}
