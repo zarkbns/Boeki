@@ -21,17 +21,29 @@ service cloud.firestore {
 
     // Rules for trading strategies
     match /trading_strategies/{stratId} {
-      // Allow read and write operations so the server-side integration can execute correctly
       allow read, write: if true;
     }
 
     // Rules for conversations
     match /conversations/{convId} {
-      allow get: if isSignedIn() && existing().userId == request.auth.uid;
-      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid;
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // Rules for global curated strategies
+    match /global_strategies/{globalId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == "JFWUyAe7nxeoyhooaPtTH3eEFWE3";
+    }
+
+    // Rules for sessions
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      allow write: if isSignedIn() && (
+        (request.method == "create" && incoming().userId == request.auth.uid) ||
+        (request.method != "create" && existing().userId == request.auth.uid)
+      );
     }
   }
 }

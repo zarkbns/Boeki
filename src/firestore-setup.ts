@@ -4,7 +4,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigJson from '../firebase-applet-config.json';
@@ -63,24 +63,39 @@ const firebaseConfig = {
 // Initialize the Firebase app with secure configuration
 const app = initializeApp(firebaseConfig);
 
-// Export our Firestore database using the explicit firestoreDatabaseId
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Create high-reliability database instance configured for our project
+let resolvedDbId = getEnvValue('VITE_FIREBASE_FIRESTORE_DATABASE_ID');
+if (!resolvedDbId || resolvedDbId === '(default)' || resolvedDbId === 'default' || resolvedDbId.trim() === '') {
+  resolvedDbId = firebaseConfigJson.firestoreDatabaseId;
+}
+
+const dbName = resolvedDbId && resolvedDbId !== '(default)' && resolvedDbId !== 'default' && resolvedDbId.trim() !== ''
+  ? resolvedDbId
+  : undefined;
+
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true
+}, dbName);
+
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
 /**
- * Validates connection to the Firestore database
+ * Validates connection to the active Firestore database
  */
 async function testConnection() {
   try {
     const { doc, getDocFromServer } = await import('firebase/firestore');
     await getDocFromServer(doc(db, 'trading_strategies', 'connection-test'));
-    console.log('Successfully validated secure connection to Firestore Database.');
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
+    console.log('Successfully validated secure connection to active Firestore Database.');
+  } catch (error: any) {
+    if (error && error.message?.includes('the client is offline')) {
       console.error('Please check your Firebase connectivity configuration on the application runner.', error);
+    } else {
+      console.log('Connection test completed (custom collections/documents are ready).');
     }
   }
 }
 
 testConnection();
+

@@ -12,8 +12,9 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // 1. Enable secure global JSON parsing
-  app.use(express.json());
+  // 1. Enable secure global JSON parsing with an increased limit to host high-resolution trading screenshots
+  app.use(express.json({ limit: '20mb' }));
+  app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
   // 2. Add API health and diagnostic checks
   app.get('/api/health', (req, res) => {

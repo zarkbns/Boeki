@@ -8,29 +8,29 @@
 }
 
 :root {
-  --color-bg: #1A1B1E;
-  --color-card: #2C2D33;
-  --color-feed: #3A3C45;
-  --color-text: #FFFFFF;
-  --color-bubble: #454854;
+  --color-bg: #09090b;
+  --color-card: #18181b;
+  --color-feed: #18181b;
+  --color-text: #fafafa;
+  --color-bubble: #18181b;
   --color-accent: #F95C4B;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-subtext: #A0A3B1;
-  --color-inner-shadow: rgba(0, 0, 0, 0.3);
-  --color-badge-bg: rgba(255, 255, 255, 0.06);
+  --color-border: #27272a;
+  --color-subtext: #a1a1aa;
+  --color-inner-shadow: rgba(0, 0, 0, 0.5);
+  --color-badge-bg: #27272a;
 }
 
 :root.light {
-  --color-bg: #E4DED2;
-  --color-card: #FFFFFF;
-  --color-feed: #E1E5AC;
-  --color-text: #000000;
-  --color-bubble: #F6F4F1;
+  --color-bg: #09090b;
+  --color-card: #18181b;
+  --color-feed: #18181b;
+  --color-text: #fafafa;
+  --color-bubble: #18181b;
   --color-accent: #F95C4B;
-  --color-border: rgba(0, 0, 0, 0.05);
-  --color-subtext: rgba(0, 0, 0, 0.6);
-  --color-inner-shadow: rgba(0, 0, 0, 0.03);
-  --color-badge-bg: #DBE3E9;
+  --color-border: #27272a;
+  --color-subtext: #a1a1aa;
+  --color-inner-shadow: rgba(0, 0, 0, 0.5);
+  --color-badge-bg: #27272a;
 }
 
 body {

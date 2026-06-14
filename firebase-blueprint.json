@@ -49,6 +49,35 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "messages"]
+    },
+    "Session": {
+      "title": "User Session Memory",
+      "description": "Persistent session context storing chat logs and metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "title": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "required": ["userId", "createdAt", "title", "messages"]
+    },
+    "GlobalStrategy": {
+      "title": "Global Curated Strategy",
+      "description": "Global strategy prepared by administrator from YouTube video parsing.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "strategyData": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "strategyData", "createdAt"]
     }
   },
   "firestore": {
@@ -59,6 +88,14 @@
     "conversations/{convId}": {
       "schema": "Conversation",
       "description": "Stores individual conversational context and messages for each user."
+    },
+    "sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Persistent user chats and session memory"
+    },
+    "global_strategies/{globalId}": {
+      "schema": "GlobalStrategy",
+      "description": "Publicly readable collection of curated trading strategies saved by Admin"
     }
   }
 }

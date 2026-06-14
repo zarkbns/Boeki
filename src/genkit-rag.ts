@@ -85,7 +85,198 @@ export const ingestVideoFlow = aiGenkit.defineFlow(
   },
   async (input) => {
     const playlistId = extractPlaylistId(input.youtubeUrl);
-    
+    const isAdmin = input.userId === "JFWUyAe7nxeoyhooaPtTH3eEFWE3";
+
+    if (isAdmin) {
+      console.log(`[Admin Ingest] Processing curated strategy ingestion. Target URL: ${input.youtubeUrl}`);
+      // 1. YouTube PLAYLIST ingestion for ADMIN
+      if (playlistId) {
+        console.log(`[Admin Ingest] Ingesting YouTube Playlist: ${playlistId}`);
+        const videoUrls = await fetchPlaylistVideoUrls(playlistId);
+        if (videoUrls.length === 0) {
+          throw new Error(`The target YouTube playlist '${playlistId}' did not return any parseable videos.`);
+        }
+
+        const maxBatchVideos = 5;
+        const targetUrls = videoUrls.slice(0, maxBatchVideos);
+        const allExtractedStrategies: any[] = [];
+        let totalSavedCount = 0;
+
+        for (const url of targetUrls) {
+          const currentVidId = extractYoutubeId(url);
+          if (!currentVidId) continue;
+
+          try {
+            console.log(`[Admin Playlist Ingest] Video ID: ${currentVidId}`);
+            const transcript = await fetchYoutubeTranscript(currentVidId);
+            const client = getGeminiClient();
+            const systemInstruction = `
+You are an expert technical market analyst.
+Analyze the transcript of this trading tutorial and extract actionable technical trading strategies.
+Your response MUST be a strict JSON array of objects fitting the following requested schema:
+- strategyName: string (name of the strategy)
+- timeframe: string (recommended chart timeframe)
+- indicators: string[] (list of technical indicators utilized)
+- entryConditionsLong: string (rules for entering a trade - bullish setups)
+- entryConditionsShort: string (rules for entering a trade - bearish setups)
+- exitConditions: string (rules for exiting a trade - stop loss, take profit targets, trend violation)
+- riskRules: string (position sizing or risk rules)
+- rawRulesText: string (detailed summary explanation)
+
+Do NOT output code blocks, HTML, or conversational text. Output ONLY valid JSON in the requested format.
+`;
+
+            const modelResponse = await generateContentWithResilience(
+              'gemini-3.5-flash',
+              `Analyze this trading tutorial transcript for video ID: ${currentVidId}\n\nTranscript Content:\n${transcript}`,
+              {
+                systemInstruction,
+                responseMimeType: 'application/json',
+                responseSchema: {
+                  type: Type.ARRAY,
+                  description: 'List of technical trading strategies.',
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      strategyName: { type: Type.STRING },
+                      timeframe: { type: Type.STRING },
+                      indicators: { 
+                        type: Type.ARRAY, 
+                        items: { type: Type.STRING } 
+                      },
+                      entryConditionsLong: { type: Type.STRING },
+                      entryConditionsShort: { type: Type.STRING },
+                      exitConditions: { type: Type.STRING },
+                      riskRules: { type: Type.STRING },
+                      rawRulesText: { type: Type.STRING }
+                    },
+                    required: ['strategyName', 'timeframe', 'indicators', 'exitConditions']
+                  }
+                }
+              }
+            );
+
+            const generatedText = modelResponse.text;
+            if (!generatedText) continue;
+
+            const videoStrategies = JSON.parse(generatedText);
+            console.log(`[Admin Ingest] Extracted ${videoStrategies.length} strategies for ${currentVidId}.`);
+
+            const docData = {
+              title: videoStrategies[0]?.strategyName || `Curated Strategy for ${currentVidId}`,
+              strategyData: videoStrategies,
+              createdAt: new Date().toISOString()
+            };
+
+            try {
+              await addDoc(collection(db, 'global_strategies'), docData);
+            } catch (dbErr) {
+              console.warn("[Admin Playlist Ingest] Server database write skipped. Frontend will save.", dbErr);
+            }
+            totalSavedCount += videoStrategies.length;
+            allExtractedStrategies.push({
+              title: docData.title,
+              strategyData: docData.strategyData,
+              id: currentVidId
+            });
+          } catch (err) {
+            console.error(`[Admin Playlist Ingest ERROR] Skipping video ${currentVidId}:`, err);
+          }
+        }
+
+        return {
+          success: true,
+          videoId: `playlist-${playlistId}`,
+          strategiesExtracted: totalSavedCount,
+          message: `Successfully ingested YouTube Playlist into global curated strategies directory. Saved ${allExtractedStrategies.length} videos containing ${totalSavedCount} strategies.`,
+          strategies: allExtractedStrategies
+        };
+      }
+
+      // 2. SINGLE VIDEO ingestion for ADMIN
+      const currentVidId = extractYoutubeId(input.youtubeUrl);
+      if (!currentVidId) {
+        throw new Error('Invalid YouTube URL. Could not extract video ID.');
+      }
+
+      console.log(`[Admin Ingest] Ingesting single video transcript for: ${currentVidId}`);
+      const transcript = await fetchYoutubeTranscript(currentVidId);
+      const client = getGeminiClient();
+      const systemInstruction = `
+You are an expert technical market analyst.
+Analyze the transcript of this trading tutorial and extract actionable technical trading strategies.
+Your response MUST be a strict JSON array of objects fitting the following requested schema:
+- strategyName: string (name of the strategy)
+- timeframe: string (recommended chart timeframe)
+- indicators: string[] (list of technical indicators utilized)
+- entryConditionsLong: string (rules for entering a trade - bullish setups)
+- entryConditionsShort: string (rules for entering a trade - bearish setups)
+- exitConditions: string (rules for exiting a trade - stop loss, take profit targets, trend violation)
+- riskRules: string (position sizing or risk rules)
+- rawRulesText: string (detailed summary explanation)
+
+Do NOT output code blocks, HTML, or conversational text. Output ONLY valid JSON in the requested format.
+`;
+
+      const response = await generateContentWithResilience(
+        'gemini-3.5-flash',
+        `Translate and structure this video transcript into the strict trading strategy schema.\n\nTranscript Content:\n${transcript}`,
+        {
+          systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.ARRAY,
+            description: 'Array of strict technical trading strategies.',
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                strategyName: { type: Type.STRING },
+                timeframe: { type: Type.STRING },
+                indicators: { 
+                  type: Type.ARRAY, 
+                  items: { type: Type.STRING } 
+                },
+                entryConditionsLong: { type: Type.STRING },
+                entryConditionsShort: { type: Type.STRING },
+                exitConditions: { type: Type.STRING },
+                riskRules: { type: Type.STRING },
+                rawRulesText: { type: Type.STRING }
+              },
+              required: ['strategyName', 'timeframe', 'indicators', 'exitConditions']
+            }
+          }
+        }
+      );
+
+      const generatedText = response.text;
+      if (!generatedText) {
+        throw new Error('Gemini model response was empty.');
+      }
+
+      const parsedStrategies = JSON.parse(generatedText);
+      const title = parsedStrategies[0]?.strategyName || "Curated Video Strategy";
+
+      const docData = {
+        title,
+        strategyData: parsedStrategies,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        await addDoc(collection(db, 'global_strategies'), docData);
+      } catch (dbErr) {
+        console.warn("[Admin Ingest] Server database write skipped. Frontend will save.", dbErr);
+      }
+      return {
+        success: true,
+        videoId: currentVidId,
+        strategiesExtracted: parsedStrategies.length,
+        message: `Successfully ingested curated strategy tutorial. Extracted and stored ${parsedStrategies.length} strategies in global directory.`,
+        strategies: parsedStrategies
+      };
+    }
+
+    // --- STANDARD USER PATH ---
     // 1. YouTube PLAYLIST ingestion path
     if (playlistId) {
       console.log(`[Ingest] Ingesting YouTube Playlist: ${playlistId}`);
@@ -386,8 +577,8 @@ You have access to two hidden tools: \`fetchLiveMarketData\` and a Firestore col
     let compiledResponse = '';
 
     try {
-      // Use Gemini 1.5 Pro when image exists, otherwise gemini-3.5-flash
-      const targetModel = input.image ? 'gemini-1.5-pro' : 'gemini-3.5-flash';
+      // Use the compliant high-performance gemini-3.5-flash model supporting multimodal analysis nicely
+      const targetModel = 'gemini-3.5-flash';
 
       // First call to model with registered tools
       const response = await generateContentWithResilience(
@@ -525,24 +716,67 @@ You have access to two hidden tools: \`fetchLiveMarketData\` and a Firestore col
  */
 export async function getStoredStrategies(userId?: string): Promise<any[]> {
   const strategiesCol = collection(db, 'trading_strategies');
+  const globalCol = collection(db, 'global_strategies');
+  
+  let userAndPublicStrategies: any[] = [];
   try {
-    let q;
     if (userId) {
-      q = firestoreQuery(strategiesCol, firestoreWhere('userId', '==', userId), firestoreLimit(25));
+      const qUser = firestoreQuery(strategiesCol, firestoreWhere('userId', '==', userId), firestoreLimit(25));
+      const qPublic = firestoreQuery(strategiesCol, firestoreWhere('userId', '==', null), firestoreLimit(25));
+      
+      const [snapUser, snapPublic] = await Promise.all([
+        getDocs(qUser),
+        getDocs(qPublic)
+      ]);
+      
+      const combined = [...snapUser.docs, ...snapPublic.docs];
+      const uniqueDocs = new Map();
+      for (const d of combined) {
+        uniqueDocs.set(d.id, d.data());
+      }
+      
+      userAndPublicStrategies = Array.from(uniqueDocs.entries()).map(([id, data]: [string, any]) => ({
+        id,
+        ...data
+      }));
     } else {
-      q = firestoreQuery(strategiesCol, firestoreLimit(25));
+      const q = firestoreQuery(strategiesCol, firestoreLimit(25));
+      const snapshot = await getDocs(q);
+      userAndPublicStrategies = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...(doc.data() as any)
+      }));
     }
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as any)
-    }));
   } catch (error: any) {
     if (error && (error.code === 'permission-denied' || String(error).includes('permission'))) {
       handleFirestoreError(error, OperationType.LIST, 'trading_strategies');
     }
     console.warn('Failed to fetch from Firestore trading_strategies:', error);
-    return [];
   }
+
+  // Fetch admin curated global strategies and flat-map them so they flow in the global RAG database automatically!
+  const globalStrategiesFlat: any[] = [];
+  try {
+    const qGlobal = firestoreQuery(globalCol, firestoreLimit(25));
+    const snapGlobal = await getDocs(qGlobal);
+    for (const doc of snapGlobal.docs) {
+      const data = doc.data();
+      if (data.strategyData && Array.isArray(data.strategyData)) {
+        for (const strat of data.strategyData) {
+          globalStrategiesFlat.push({
+            id: `${doc.id}-${strat.strategyName}`,
+            ...strat,
+            createdAt: data.createdAt,
+            videoUrl: data.videoUrl || "",
+            isGlobalCurated: true
+          });
+        }
+      }
+    }
+  } catch (globalError) {
+    console.warn('Failed to fetch from Firestore global_strategies collection:', globalError);
+  }
+
+  return [...userAndPublicStrategies, ...globalStrategiesFlat];
 }
 
