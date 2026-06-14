@@ -5,12 +5,40 @@
 
 import express from 'express';
 import path from 'path';
+import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
 import { ingestVideoFlow, queryKnowledgeFlow, getStoredStrategies } from './src/genkit-rag';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Configure CORS to prioritize and authorize access from https://boeki.vercel.app/
+  const allowedOrigins = [
+    'https://boeki.vercel.app',
+    'https://boeki.vercel.app/',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      // Normalize trailing slash
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      const isExplicitlyAllowed = allowedOrigins.some(o => o.replace(/\/$/, '') === normalizedOrigin);
+      
+      if (isExplicitlyAllowed || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        // Fallback to true to allow in-container preview iframes to connect seamlessly
+        callback(null, true);
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  }));
 
   // 1. Enable secure global JSON parsing with an increased limit to host high-resolution trading screenshots
   app.use(express.json({ limit: '20mb' }));

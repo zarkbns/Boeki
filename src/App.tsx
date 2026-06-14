@@ -23,7 +23,6 @@ import {
   Settings,
   User,
   Sun,
-  Moon,
   ArrowRight,
   ChevronLeft,
   FileCheck,
@@ -167,66 +166,6 @@ export default function App() {
   // Navigation: Page 1 (chat) <-> Page 2 (dashboard)
   const [currentPage, setCurrentPage] = useState<'chat' | 'dashboard' | 'admin'>('dashboard');
   const [theme] = useState<'dark' | 'light'>('light'); // Theme permanently set to light as requested
-
-  // Easter Egg Quote Engine config
-  const QUOTE_DATABASE = {
-    panicVolatility: [
-      { text: "October: This is one of the peculiarly dangerous months to speculate in stocks. The others are July, January, September, April, November, May, March, June, December, August, and February.", author: "Mark Twain" },
-      { text: "Investing should be more like watching paint dry or watching grass grow. If you want excitement, take $800 and go to Las Vegas.", author: "Paul Samuelson" },
-      { text: "Only when the tide goes out do you discover who's been swimming naked.", author: "Warren Buffett" },
-      { text: "Bulls make money, bears make money, pigs get slaughtered.", author: "Wall Street Adage" },
-      { text: "The stock market is a device for transferring money from the impatient to the patient.", author: "Warren Buffett" }
-    ],
-    popCultureMovies: [
-      { text: "If you want a friend, get a dog.", author: "Gordon Gekko (Wall Street)" },
-      { text: "Those are rookie numbers in this racket. You gotta pump those numbers up.", author: "Mark Hanna (The Wolf of Wall Street)" },
-      { text: "The most valuable commodity I know of is information.", author: "Gordon Gekko (Wall Street)" },
-      { text: "Look at me. I'm the captain of this trade now.", author: "Pop-Culture Meme" },
-      { text: "Risk comes from not knowing what you're doing.", author: "Warren Buffett" }
-    ],
-    tradingPsychology: [
-      { text: "There is a time to go long, a time to go short, and a time to go fishing.", author: "Jesse Livermore" },
-      { text: "If most traders would learn to sit on their hands 50% of the time, they would make a lot more money.", author: "Bill Lipschutz" },
-      { text: "The market can remain irrational longer than you can remain solvent.", author: "John Maynard Keynes" },
-      { text: "In trading, you have to be defensive. If you don't defend your capital, you won't be around to play.", author: "Paul Tudor Jones" },
-      { text: "Michael Jordan didn't become Michael Jordan by shooting three-pointers every single second of the day.", author: "Trading Psychology Adage" }
-    ],
-    cryptoMemes: [
-      { text: "Are those paper hands I see? 🧻🤲" },
-      { text: "Diamond hands activated. 💎🙌 To the moon!" },
-      { text: "Buy high, sell low. This is the way." },
-      { text: "Sir, this is a Wendy's." },
-      { text: "Oops! This page just experienced a rug pull. 404 Error." }
-    ]
-  };
-
-  const [activeQuote, setActiveQuote] = useState<{ text: string; author?: string; category: string } | null>(null);
-  const quoteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const triggerQuoteEngine = () => {
-    if (quoteTimeoutRef.current) {
-      clearTimeout(quoteTimeoutRef.current);
-    }
-    const categories = Object.keys(QUOTE_DATABASE) as Array<keyof typeof QUOTE_DATABASE>;
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    const quotes = QUOTE_DATABASE[randomCategory];
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    
-    let catDisplayName = "Panic Volatility";
-    if (randomCategory === 'popCultureMovies') catDisplayName = "Pop Culture Movies";
-    if (randomCategory === 'tradingPsychology') catDisplayName = "Trading Psychology";
-    if (randomCategory === 'cryptoMemes') catDisplayName = "Crypto Memes";
-
-    setActiveQuote({
-      text: randomQuote.text,
-      author: 'author' in randomQuote ? randomQuote.author : undefined,
-      category: catDisplayName
-    });
-
-    quoteTimeoutRef.current = setTimeout(() => {
-      setActiveQuote(null);
-    }, 7000);
-  };
 
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
@@ -846,10 +785,12 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="h-screen w-screen relative flex items-center justify-center bg-[var(--color-bg)] select-none text-[var(--color-text)]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-[#F95C4B]" />
-          <p className="font-mono text-xs text-[var(--color-subtext)] uppercase tracking-widest font-black">Initializing Boeki Secure Auth...</p>
+      <div className="min-h-screen w-full bg-[#09090b] flex items-center justify-center relative select-none">
+        <div className="max-w-[1024px] w-full min-h-screen mx-auto bg-[var(--color-bg)] border-x border-transparent lg:border-[#27272a] relative flex flex-col items-center justify-center text-[var(--color-text)] overflow-hidden">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-[#F95C4B]" />
+            <p className="font-mono text-xs text-[var(--color-subtext)] uppercase tracking-widest font-black">Initializing Boeki Secure Auth...</p>
+          </div>
         </div>
       </div>
     );
@@ -857,9 +798,10 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <div className="h-screen w-screen relative flex flex-col justify-between bg-[var(--color-bg)] overflow-hidden select-none font-sans">
-        
-        {/* TOP HALF (Branding & Sleek molded 3D Faceted Polyhedron Graphic) */}
+      <div className="min-h-screen w-full bg-[#09090b] relative select-none font-sans flex flex-col justify-between">
+        <div className="max-w-[1024px] w-full min-h-screen mx-auto bg-[var(--color-bg)] border-x border-transparent lg:border-[#27272a] relative flex flex-col justify-between overflow-hidden">
+          
+          {/* TOP HALF (Branding & Sleek molded 3D Faceted Polyhedron Graphic) */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 relative w-full min-h-0">
           
           {/* Boeki Logo & Heading */}
@@ -1046,125 +988,14 @@ export default function App() {
             </span>
           </div>
         </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen relative flex flex-col overflow-hidden select-none bg-[var(--color-bg)] text-[var(--color-text)] theme-transition">
-      
-      {/* Animated Easter Egg Quote Toast */}
-      <AnimatePresence>
-        {activeQuote && (
-          <motion.div
-            id="easter-egg-quote-toast"
-            initial={{ opacity: 0, y: -80, x: "-50%", scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }}
-            exit={{ opacity: 0, y: -40, x: "-50%", scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 350, damping: 24 }}
-            className="fixed top-6 left-1/2 z-[99999] w-[85%] max-w-sm bg-[var(--color-card)] border-2 border-[#F95C4B] rounded-2xl shadow-xl p-3.5 select-none text-[var(--color-text)] overflow-hidden"
-          >
-            {/* Decorative colored top-edge line */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#F95C4B]" />
-            
-            <div className="flex items-center gap-3">
-              {/* App Logo nested inside quote bubbles */}
-              <div className="w-10 h-10 shrink-0 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-10 h-10">
-                  {/* Inner back edges defining container opening */}
-                  <path d="M 28.5,48.5 L 47,37.5 L 73.5,45" fill="none" stroke="#000000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-
-                  {/* Folder 1 (Back right - Sage Green) */}
-                  <path 
-                    d="M 51,47 L 51,36.5 Q 51,34.5 53,35 L 59.5,37 Q 61,37.5 61,38.5 L 61,39.5 L 67.5,41.5 Q 69,42 69,43.5 L 69,49 Z" 
-                    fill="#E1E5AC" 
-                    stroke="#000000" 
-                    strokeWidth={2} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* Folder 2 (Standing White Folder) */}
-                  <path 
-                    d="M 35,52 L 35,28 Q 35,24.5 37.5,25.2 L 47,27.8 Q 49,28.3 49,30.3 L 49.5,32 L 59,34.7 Q 60.5,35.1 60.5,37 L 60.5,52 Z" 
-                    fill="#FFFFFF" 
-                    stroke="#000000" 
-                    strokeWidth={2} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* Folder 3 (Middle-left - Warm Neutral) */}
-                  <path 
-                    d="M 33,55 L 33,38 Q 33,35 35,35.5 L 42.5,37.6 Q 44,38 44,39.5 L 44,41 L 55,44 Q 56.5,44.4 56.5,46 L 56.5,55 Z" 
-                    fill="#F6F4F1" 
-                    stroke="#000000" 
-                    strokeWidth={2} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* Folder 4 (Front-most - Sage Green) */}
-                  <path 
-                    d="M 30,59 L 30,41.5 Q 30,38.5 32,39 L 39,41 Q 41,41.5 41,43.5 L 41,44.5 L 52,47.5 Q 53.5,48 53.5,49.5 L 53.5,59 Z" 
-                    fill="#E1E5AC" 
-                    stroke="#000000" 
-                    strokeWidth={2} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* Coral Right Face */}
-                  <path 
-                    d="M 55,56 L 73.5,45 L 73.5,64.5 L 55,76 Z" 
-                    fill="#F95C4B" 
-                    stroke="#000000" 
-                    strokeWidth={2} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* White Front Face */}
-                  <path 
-                    d="M 28.5,48.5 L 55,56 L 55,76 L 28.5,68.5 Z" 
-                    fill="#FFFFFF" 
-                    stroke="#000000" 
-                    strokeWidth={2} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-
-                  {/* Handle on Front Face */}
-                  <path 
-                    d="M 36.5,58 L 44.5,60.2 C 46.5,60.8 46.5,63.2 44.5,63.8 L 36.5,61.6 C 34.5,61 34.5,58.6 36.5,58 Z" 
-                    fill="#000000" 
-                    stroke="#000000" 
-                    strokeWidth={1} 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                  />
-                </svg>
-              </div>
-              
-              <div className="flex-1 min-w-0 pr-5 py-0.5">
-                <p className="font-sans text-[11px] md:text-xs font-semibold text-zinc-800 leading-normal">
-                  "{activeQuote.text}"
-                </p>
-              </div>
-            </div>
-            
-            {/* Close button */}
-            <button
-              onClick={() => setActiveQuote(null)}
-              className="absolute top-2.5 right-2.5 p-1 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors cursor-pointer"
-              aria-label="Close"
-              id="close-quote-toast-btn"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen w-full bg-[#09090b] flex flex-col relative select-none">
+      <div className="max-w-[1024px] w-full h-screen mx-auto bg-[var(--color-bg)] border-x border-transparent lg:border-[#27272a] relative flex flex-col overflow-hidden text-[var(--color-text)] theme-transition">
       
       {/* MAIN CONTAINER */}
       <div className="flex-1 w-full h-full flex flex-col relative z-10 max-w-6xl mx-auto md:px-4">
@@ -1382,32 +1213,44 @@ export default function App() {
                           key={message.id} 
                           className={`flex flex-col gap-2 w-full ${isBot ? 'items-start' : 'items-end'}`}
                         >
-                          {/* Message body (iOS Premium Squircle shape, generous padding, 92-95% edge-to-edge width bounds) */}
-                          <div className={`rounded-[2rem] p-5 sm:p-6 text-[13px] sm:text-sm leading-relaxed shadow-md border border-[var(--color-border)] w-[94%] sm:w-auto sm:max-w-[85%] ${
-                            isBot 
-                              ? 'bg-[var(--color-card)] text-[var(--color-text)]' 
-                              : 'bg-[var(--color-bubble)] text-[var(--color-text)]'
-                          }`}>
+                          {/* Message body (Raw Command Line for AI, Crisp Rounded-2xl Solid Dark terminal layout with 3-pronged custom geometric tail for User) */}
+                          <div className={isBot 
+                            ? "w-full py-2 px-1 text-left bg-transparent border-0 shadow-none text-[13px] sm:text-sm leading-relaxed" 
+                            : "relative bg-[#18181b] text-[#fafafa] rounded-2xl p-5 sm:p-6 text-[13px] sm:text-sm leading-relaxed shadow-lg border border-[#27272a] w-[94%] sm:w-auto sm:max-w-[85%]"
+                          }>
                             
+                            {!isBot && (
+                              <svg width="24" height="12" viewBox="0 0 24 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute -bottom-3 right-6 pointer-events-none select-none">
+                                {/* Prong 1 */}
+                                <path d="M22,0 L19,11 L16,11 L18,0 Z" fill="#18181b" stroke="#27272a" strokeWidth="0.5" />
+                                {/* Prong 2 */}
+                                <path d="M15,0 L13,9 L10,9 L12,0 Z" fill="#18181b" stroke="#27272a" strokeWidth="0.5" />
+                                {/* Prong 3 */}
+                                <path d="M9,0 L8,7 L5,7 L7,0 Z" fill="#18181b" stroke="#27272a" strokeWidth="0.5" />
+                                {/* Covering rect to hide any top stroke overlapping the main bubble border */}
+                                <rect x="0" y="0" width="24" height="2" fill="#18181b" />
+                              </svg>
+                            )}
+
                             {isBot ? (
-                              <div className="markdown-body space-y-2.5">
+                              <div className="flex-1 min-w-0 space-y-2.5 font-mono text-zinc-400">
                                 <Markdown
                                   components={{
-                                    h1: ({node, ...props}) => <h1 className="text-sm font-bold font-mono text-[var(--color-text)] mt-4 mb-2 border-b border-[var(--color-border)] pb-1 uppercase tracking-tight" {...props} />,
-                                    h2: ({node, ...props}) => <h2 className="text-xs font-bold font-mono text-[#F95C4B] mt-3 mb-1.5" {...props} />,
-                                    h3: ({node, ...props}) => <h3 className="text-xs font-bold font-mono text-[var(--color-subtext)] mt-2 mb-1" {...props} />,
-                                    p: ({node, ...props}) => <p className="leading-relaxed mb-3 text-[var(--color-text)]/90 font-medium" {...props} />,
-                                    ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1 text-[var(--color-text)]/90" {...props} />,
-                                    ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-3 space-y-1 text-[var(--color-text)]/90" {...props} />,
-                                    li: ({node, ...props}) => <li className="text-[12px] sm:text-[12.5px] font-medium" {...props} />,
-                                    strong: ({node, ...props}) => <strong className="font-extrabold text-[var(--color-text)]" {...props} />,
+                                    h1: ({node, ...props}) => <h1 className="text-sm font-bold font-mono text-zinc-200 mt-4 mb-2 border-b border-zinc-800 pb-1 uppercase tracking-tight" {...props} />,
+                                    h2: ({node, ...props}) => <h2 className="text-xs font-bold font-mono text-zinc-200 mt-3 mb-1.5" {...props} />,
+                                    h3: ({node, ...props}) => <h3 className="text-xs font-bold font-mono text-zinc-300 mt-2 mb-1" {...props} />,
+                                    p: ({node, ...props}) => <p className="leading-relaxed mb-3 font-mono text-zinc-400" {...props} />,
+                                    ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1 font-mono text-zinc-400" {...props} />,
+                                    ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-3 space-y-1 font-mono text-zinc-400" {...props} />,
+                                    li: ({node, ...props}) => <li className="text-[12px] sm:text-[12.5px] font-mono text-zinc-400" {...props} />,
+                                    strong: ({node, ...props}) => <strong className="font-extrabold text-[#F95C4B] font-mono" {...props} />,
                                     code: ({node, className, children, ...props}) => {
                                       const match = /language-(\w+)/.exec(className || '');
                                       const inline = !match;
                                       return inline ? (
-                                        <code className="bg-[var(--color-badge-bg)] text-[var(--color-text)] px-1.5 py-0.5 rounded font-mono text-[10.5px]" {...props}>{children}</code>
+                                        <code className="bg-[#18181b] text-zinc-200 px-1.5 py-0.5 rounded font-mono text-[10.5px] border border-[#27272a]/40" {...props}>{children}</code>
                                       ) : (
-                                        <pre className="bg-[var(--color-bubble)] border border-[var(--color-border)] p-3 rounded-xl font-mono text-[10.5px] text-[var(--color-text)] overflow-x-auto my-3"><code {...props}>{children}</code></pre>
+                                        <pre className="bg-[#0b0b0c] border border-[#1f1f23] p-3 rounded-xl font-mono text-[10.5px] text-zinc-300 overflow-x-auto my-3"><code {...props}>{children}</code></pre>
                                       );
                                     }
                                   }}
@@ -1416,7 +1259,7 @@ export default function App() {
                                 </Markdown>
                               </div>
                             ) : (
-                              <div className="whitespace-pre-wrap font-medium">{message.text}</div>
+                              <div className="whitespace-pre-wrap font-sans font-medium text-[#fafafa]">{message.text}</div>
                             )}
 
                             {/* Attached Screenshot Image bubble render */}
@@ -1893,15 +1736,6 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* Easter Egg Quote Generator button replaces Dark Mode toggle */}
-                  <button 
-                    onClick={triggerQuoteEngine}
-                    className="w-12 h-12 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
-                    title="Click for a market wisdom quote! 💡"
-                  >
-                    <Moon className="w-5 h-5 text-[#F95C4B]" />
-                  </button>
-
                   {/* Profile avatar */}
                   <button 
                     onClick={() => setShowProfileModal(true)}
@@ -2462,6 +2296,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      </div>
     </div>
   );
 }
