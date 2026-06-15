@@ -44,7 +44,39 @@ app.use(cors({
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
-// 2. Add API health and diagnostic checks
+// 2. Add environment sanity check middleware for Serverless Vercel runs
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const isGeminiKeyConfigured = !!geminiKey && 
+      geminiKey.trim() !== '' && 
+      !geminiKey.toUpperCase().includes('PLACEHOLDER') &&
+      !geminiKey.toUpperCase().startsWith('YOUR_');
+
+    console.log(`[Vercel Serverless Diagnostic] Request to "${req.path}"`);
+    console.log(`[Vercel Serverless Diagnostic] GEMINI_API_KEY Configured: ${isGeminiKeyConfigured ? 'YES (Verified)' : 'NO (Missing or Placeholder)'}`);
+    
+    if (geminiKey) {
+      const masked = geminiKey.length > 8 
+        ? `${geminiKey.substring(0, 4)}...${geminiKey.substring(geminiKey.length - 4)}` 
+        : '***';
+      console.log(`[Vercel Serverless Diagnostic] GEMINI_API_KEY value: [${masked}] (length: ${geminiKey.length})`);
+    }
+
+    if (['/api/rag/query', '/api/rag/ingest', '/api/strategies/compare'].includes(req.path) && !isGeminiKeyConfigured) {
+      console.error('[CRITICAL CONFIG ERROR] Attempted execution of AI/RAG route without valid GEMINI_API_KEY configured!');
+      res.status(500).json({
+        success: false,
+        error: 'Backend API key configuration error',
+        details: 'GEMINI_API_KEY is missing or contains placeholder values. Please declare it in your Vercel Project Environment variables.'
+      });
+      return;
+    }
+  }
+  next();
+});
+
+// 3. Add API health and diagnostic checks
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
