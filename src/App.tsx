@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import DrawingOverlay from './components/DrawingOverlay';
+import BoekiLogoAsset from './boeki-logo-transparent.png';
 import { auth, db, storage } from './firestore-setup';
 import { 
   onAuthStateChanged, 
@@ -382,6 +383,14 @@ export default function App() {
   const [curatedStrategies, setCuratedStrategies] = useState<any[]>([]);
   const [loadingCurated, setLoadingCurated] = useState(false);
 
+  // States for Side-by-Side Split View Strategy Comparison
+  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const [selectedStrategyIdA, setSelectedStrategyIdA] = useState<string | null>(null);
+  const [selectedStrategyIdB, setSelectedStrategyIdB] = useState<string | null>(null);
+  const [isComparingStrategies, setIsComparingStrategies] = useState(false);
+  const [strategyComparisonError, setStrategyComparisonError] = useState<string | null>(null);
+  const [strategyComparisonResult, setStrategyComparisonResult] = useState<any | null>(null);
+
   // Chat-related states
   const [query, setQuery] = useState('');
   const [attachedImage, setAttachedImage] = useState<{ data: string; mimeType: string } | null>(null);
@@ -442,6 +451,32 @@ export default function App() {
       console.warn('Failed to load strategies list', e);
     } finally {
       setLoadingStrategiesList(false);
+    }
+  };
+
+  const handleCompareStrategies = async (stratA: TradingStrategy, stratB: TradingStrategy) => {
+    setIsComparingStrategies(true);
+    setStrategyComparisonError(null);
+    setStrategyComparisonResult(null);
+    try {
+      const response = await fetch('/api/strategies/compare', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ strategyA: stratA, strategyB: stratB })
+      });
+      const data = await response.json();
+      if (data.success && data.comparison) {
+        setStrategyComparisonResult(data.comparison);
+      } else {
+        setStrategyComparisonError(data.error || 'Failed to analyze strategies divergence.');
+      }
+    } catch (e: any) {
+      console.error('Error during strategy comparison:', e);
+      setStrategyComparisonError(e.message || 'Network error comparing strategies.');
+    } finally {
+      setIsComparingStrategies(false);
     }
   };
 
@@ -1037,7 +1072,11 @@ export default function App() {
                         onClick={() => setDropdownOpen(!dropdownOpen)}
                         className="flex items-center gap-1.5 text-lg font-sans font-extrabold tracking-tight text-[var(--color-text)] hover:opacity-80 active:scale-95 transition-all text-left"
                       >
-                        <span className="text-[var(--color-text)]">Boeki</span>
+                        <img 
+                          src={BoekiLogoAsset} 
+                          alt="Boeki Logo" 
+                          className="h-10 sm:h-12 w-auto object-contain" 
+                        />
                         <ChevronDown className="w-4.5 h-4.5 text-[var(--color-subtext)] mt-0.5" />
                       </button>
 
@@ -1067,6 +1106,22 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Navigation Segmented Tab Switcher */}
+                  <div className="flex items-center gap-1 bg-zinc-950/60 p-1 rounded-xl border border-[var(--color-border)] select-none">
+                    <button 
+                      onClick={() => setIsComparisonMode(false)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-black uppercase transition-all whitespace-nowrap cursor-pointer ${!isComparisonMode ? 'bg-[#F95C4B] text-white shadow-md' : 'text-[var(--color-subtext)] hover:text-[var(--color-text)]'}`}
+                    >
+                      💬 Core Chat
+                    </button>
+                    <button 
+                      onClick={() => setIsComparisonMode(true)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-black uppercase transition-all whitespace-nowrap cursor-pointer ${isComparisonMode ? 'bg-[#F95C4B] text-white shadow-md' : 'text-[var(--color-subtext)] hover:text-[var(--color-text)]'}`}
+                    >
+                      🔀 Split-View Compare
+                    </button>
+                  </div>
+
                   {/* Top Right: Profile badge to maintain layout balance */}
                   <button 
                     onClick={() => setShowProfileModal(true)}
@@ -1086,8 +1141,378 @@ export default function App() {
 
               {/* BODY MESSAGES / GREETING CONTAINER */}
               <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 relative flex flex-col w-full h-full">
-                
-                {/* 1. GREETING EMPTY STATE (CENTER SCREEN) */}
+                {isComparisonMode ? (
+                  <div className="absolute inset-0 flex flex-col bg-zinc-950/40 p-4 md:p-6 overflow-hidden z-20 pointer-events-auto">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-[var(--color-border)] pb-4 select-none shrink-0">
+                      <div>
+                        <h2 className="text-base font-sans font-black text-[var(--color-text)] flex items-center gap-2">
+                          <Sparkles className="w-4.5 h-4.5 text-[#F95C4B]" />
+                          <span>Strategy Split-View Analysis</span>
+                        </h2>
+                        <p className="text-[10px] font-mono text-[var(--color-subtext)] uppercase tracking-wider mt-1">Determine indicator divergences and logic interlocks</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setIsComparisonMode(false);
+                        }}
+                        className="text-[10px] font-mono font-black border border-[var(--color-border)] bg-[var(--color-card)] hover:bg-[var(--color-badge-bg)] px-3.5 py-2 rounded-xl transition-all cursor-pointer text-[var(--color-text)] self-start sm:self-auto active:scale-95 shadow-sm"
+                      >
+                        ← Back to Core Chat
+                      </button>
+                    </div>
+
+                    {/* Scrollable Grid Area */}
+                    <div className="flex-1 overflow-y-auto space-y-6 pr-1 pb-16">
+                      {/* Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        
+                        {/* Selector A */}
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-5 flex flex-col gap-4 shadow-sm select-none">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[9px] font-mono text-[var(--color-subtext)] uppercase font-black tracking-wider block">Select Strategy Alpha</label>
+                            <select 
+                              value={selectedStrategyIdA || ''} 
+                              onChange={(e) => {
+                                setSelectedStrategyIdA(e.target.value || null);
+                                setStrategyComparisonResult(null);
+                              }}
+                              className="bg-zinc-950 border border-[var(--color-border)] text-[var(--color-text)] rounded-xl py-2.5 px-3.5 text-xs w-full focus:outline-none focus:border-[#F95C4B] font-semibold cursor-pointer"
+                            >
+                              <option value="">-- Choose Strategy Alpha --</option>
+                              {(() => {
+                                const seen = new Set();
+                                const uniqueCombined = [...strategiesList, ...curatedStrategies].filter(s => {
+                                  const duplicate = seen.has(s.strategyName);
+                                  seen.add(s.strategyName);
+                                  return !duplicate;
+                                });
+                                return uniqueCombined.map((s, idx) => {
+                                  const uniqueId = s.id || `curated-${idx}-${s.strategyName}`;
+                                  return (
+                                    <option key={uniqueId} value={uniqueId}>
+                                      📈 {s.strategyName} ({s.timeframe})
+                                    </option>
+                                  );
+                                });
+                              })()}
+                            </select>
+                          </div>
+
+                          {/* Preview A */}
+                          {(() => {
+                            const stratA = [...strategiesList, ...curatedStrategies].find((s, idx) => (s.id || `curated-${idx}-${s.strategyName}`) === selectedStrategyIdA);
+                            if (!stratA) {
+                              return (
+                                <div className="flex-1 min-h-[160px] border border-dashed border-[var(--color-border)] rounded-xl flex flex-col items-center justify-center text-center p-6 gap-2">
+                                  <Database className="w-5 h-5 text-[var(--color-subtext)]/20" />
+                                  <span className="text-[9px] font-mono text-[var(--color-subtext)] uppercase font-bold">Select strategy above to preview variables</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="bg-zinc-950/45 border border-[var(--color-border)] rounded-xl p-4 text-xs space-y-3.5">
+                                <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+                                  <span className="font-extrabold text-[var(--color-text)] truncate max-w-[180px] block text-[13px]">{stratA.strategyName}</span>
+                                  <span className="text-[8.5px] font-mono bg-[var(--color-badge-bg)] text-[var(--color-text)] px-1.5 py-0.5 rounded border border-[var(--color-border)] font-black uppercase">{stratA.timeframe}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Indicators Used</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {stratA.indicators?.map((ind: string, iIdx: number) => (
+                                      <span key={iIdx} className="bg-[var(--color-badge-bg)] text-[var(--color-text)] border border-[var(--color-border)] px-1.5 py-0.5 rounded font-mono text-[8.5px] font-black">{ind}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Long Setup Conditions</span>
+                                  <p className="text-[10px] text-[var(--color-text)]/70 font-semibold leading-normal bg-zinc-950 p-2 rounded-lg border border-[var(--color-border)] whitespace-pre-wrap">{stratA.entryConditionsLong || stratA.entryConditions || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Short Setup Conditions</span>
+                                  <p className="text-[10px] text-[var(--color-text)]/70 font-semibold leading-normal bg-zinc-950 p-2 rounded-lg border border-[var(--color-border)] whitespace-pre-wrap">{stratA.entryConditionsShort || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Exit conditions</span>
+                                  <p className="text-[10px] text-[var(--color-text)]/70 font-semibold leading-normal bg-zinc-950 p-2 rounded-lg border border-[var(--color-border)]">{stratA.exitConditions}</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Selector B */}
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-5 flex flex-col gap-4 shadow-sm select-none">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-[9px] font-mono text-[var(--color-subtext)] uppercase font-black tracking-wider block">Select Strategy Beta</label>
+                            <select 
+                              value={selectedStrategyIdB || ''} 
+                              onChange={(e) => {
+                                setSelectedStrategyIdB(e.target.value || null);
+                                setStrategyComparisonResult(null);
+                              }}
+                              className="bg-zinc-950 border border-[var(--color-border)] text-[var(--color-text)] rounded-xl py-2.5 px-3.5 text-xs w-full focus:outline-none focus:border-[#F95C4B] font-semibold cursor-pointer"
+                            >
+                              <option value="">-- Choose Strategy Beta --</option>
+                              {(() => {
+                                const seen = new Set();
+                                const uniqueCombined = [...strategiesList, ...curatedStrategies].filter(s => {
+                                  const duplicate = seen.has(s.strategyName);
+                                  seen.add(s.strategyName);
+                                  return !duplicate;
+                                });
+                                return uniqueCombined.map((s, idx) => {
+                                  const uniqueId = s.id || `curated-${idx}-${s.strategyName}`;
+                                  return (
+                                    <option key={uniqueId} value={uniqueId}>
+                                      📈 {s.strategyName} ({s.timeframe})
+                                    </option>
+                                  );
+                                });
+                              })()}
+                            </select>
+                          </div>
+
+                          {/* Preview B */}
+                          {(() => {
+                            const stratB = [...strategiesList, ...curatedStrategies].find((s, idx) => (s.id || `curated-${idx}-${s.strategyName}`) === selectedStrategyIdB);
+                            if (!stratB) {
+                              return (
+                                <div className="flex-1 min-h-[160px] border border-dashed border-[var(--color-border)] rounded-xl flex flex-col items-center justify-center text-center p-6 gap-2">
+                                  <Database className="w-5 h-5 text-[var(--color-subtext)]/20" />
+                                  <span className="text-[9px] font-mono text-[var(--color-subtext)] uppercase font-bold">Select strategy above to preview variables</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="bg-zinc-950/45 border border-[var(--color-border)] rounded-xl p-4 text-xs space-y-3.5">
+                                <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2.5">
+                                  <span className="font-extrabold text-[var(--color-text)] truncate max-w-[180px] block text-[13px]">{stratB.strategyName}</span>
+                                  <span className="text-[8.5px] font-mono bg-[var(--color-badge-bg)] text-[var(--color-text)] px-1.5 py-0.5 rounded border border-[var(--color-border)] font-black uppercase">{stratB.timeframe}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Indicators Used</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {stratB.indicators?.map((ind: string, iIdx: number) => (
+                                      <span key={iIdx} className="bg-[var(--color-badge-bg)] text-[var(--color-text)] border border-[var(--color-border)] px-1.5 py-0.5 rounded font-mono text-[8.5px] font-black">{ind}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Long Setup Conditions</span>
+                                  <p className="text-[10px] text-[var(--color-text)]/70 font-semibold leading-normal bg-zinc-950 p-2 rounded-lg border border-[var(--color-border)] whitespace-pre-wrap">{stratB.entryConditionsLong || stratB.entryConditions || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Short Setup Conditions</span>
+                                  <p className="text-[10px] text-[var(--color-text)]/70 font-semibold leading-normal bg-zinc-950 p-2 rounded-lg border border-[var(--color-border)] whitespace-pre-wrap">{stratB.entryConditionsShort || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-extrabold mb-1">Exit conditions</span>
+                                  <p className="text-[10px] text-[var(--color-text)]/70 font-semibold leading-normal bg-zinc-950 p-2 rounded-lg border border-[var(--color-border)]">{stratB.exitConditions}</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Trigger Button */}
+                      {(() => {
+                        const stratA = [...strategiesList, ...curatedStrategies].find((s, idx) => (s.id || `curated-${idx}-${s.strategyName}`) === selectedStrategyIdA);
+                        const stratB = [...strategiesList, ...curatedStrategies].find((s, idx) => (s.id || `curated-${idx}-${s.strategyName}`) === selectedStrategyIdB);
+                        return (
+                          <div className="flex flex-col items-center justify-center py-4 select-none">
+                            <button
+                              disabled={!stratA || !stratB || isComparingStrategies}
+                              onClick={() => {
+                                if (stratA && stratB) {
+                                  handleCompareStrategies(stratA, stratB);
+                                }
+                              }}
+                              className="px-6 py-4 bg-[#F95C4B] hover:opacity-95 disabled:bg-[var(--color-border)] text-white disabled:text-[var(--color-subtext)] font-mono font-black text-xs uppercase rounded-2xl flex items-center gap-2 transition-all cursor-pointer shadow-xl active:scale-95 disabled:pointer-events-none"
+                            >
+                              {isComparingStrategies ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                  <span>Synthesizing Divergences...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-4 h-4 text-white" />
+                                  <span>Generate AI Comparison Report</span>
+                                </>
+                              )}
+                            </button>
+                            {(!stratA || !stratB) && (
+                              <p className="text-[9px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-black mt-3">Choose both Strategy Alpha and Beta to run divergence analysis</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Loading block container */}
+                      {isComparingStrategies && (
+                        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-6 flex flex-col items-center justify-center gap-4 py-12 select-none shadow">
+                          <Loader2 className="w-8 h-8 text-[#F95C4B] animate-spin" />
+                          <div className="text-center space-y-1">
+                            <span className="font-mono text-xs text-[var(--color-text)] block font-black uppercase tracking-wide">Evaluating setups via Gemini...</span>
+                            <span className="font-mono text-[9px] text-[var(--color-subtext)] block uppercase">Calculating indicators alignment metrics and entry divergences</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Errors */}
+                      {strategyComparisonError && (
+                        <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-5 flex items-start gap-3 select-text mx-auto max-w-2xl">
+                          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="text-xs font-mono uppercase font-black text-red-550">Analysis Integration Exception</h4>
+                            <p className="text-[11px] text-red-300/80 leading-normal mt-1 font-semibold">{strategyComparisonError}</p>
+                            <button 
+                              onClick={() => setStrategyComparisonError(null)}
+                              className="mt-2 text-[9px] font-mono uppercase text-[#F95C4B] hover:underline font-black cursor-pointer"
+                            >
+                              Dismiss alert
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Results Sheet container elements */}
+                      {strategyComparisonResult && !isComparingStrategies && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-4 max-w-4xl mx-auto"
+                        >
+                          <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-3xl p-6 space-y-6 shadow-xl relative overflow-hidden flex flex-col">
+                            {/* Title bar */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[var(--color-border)] pb-5 gap-4 select-none">
+                              <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-[#F95C4B]/10 border border-[#F95C4B]/20 flex items-center justify-center">
+                                  <Activity className="w-5 h-5 text-[#F95C4B]" />
+                                </div>
+                                <div>
+                                  <h3 className="text-sm font-sans font-black text-[var(--color-text)]">Comparison Report</h3>
+                                  <p className="text-[9px] font-mono text-[var(--color-subtext)] leading-none uppercase tracking-wider mt-1">Side-by-side indicator analysis</p>
+                                </div>
+                              </div>
+
+                              {/* Overlap Rating */}
+                              <div className="flex items-center gap-3 bg-zinc-950/60 border border-[var(--color-border)] p-2 rounded-2xl self-stretch sm:self-auto justify-between sm:justify-start">
+                                <div className="text-left">
+                                  <span className="text-[9px] font-mono uppercase font-black text-[var(--color-subtext)] block leading-none tracking-wide">Compatibility</span>
+                                  <span className="text-[10px] text-emerald-400 font-extrabold block mt-1 tracking-tight leading-none">Rules Overlap</span>
+                                </div>
+                                <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-[var(--color-border)] flex items-center justify-center font-mono font-black text-xs text-[#F95C4B] shadow-inner">
+                                  {strategyComparisonResult.compatibilityScore}%
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Indicator Divergences */}
+                            <div className="space-y-4">
+                              <h4 className="text-xs font-mono uppercase font-black text-[var(--color-text)] tracking-wider">🛠️ Indicator Divergence Matrix</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 select-none">
+                                {/* Unique to A */}
+                                <div className="bg-zinc-950/50 border border-[var(--color-border)] rounded-2xl p-4 flex flex-col gap-3">
+                                  <div className="flex items-center gap-1.5 pb-2 border-b border-[var(--color-border)]">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    <span className="text-[9px] font-mono uppercase text-[var(--color-subtext)] font-black">Unique to Strategy Alpha</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5 min-h-[44px] items-center">
+                                    {strategyComparisonResult.divergentIndicators?.strategyAOnly?.length > 0 ? (
+                                      strategyComparisonResult.divergentIndicators.strategyAOnly.map((ind: string, idx: number) => (
+                                        <span key={idx} className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded font-mono text-[9px] font-black uppercase tracking-wide">
+                                          {ind}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-[10px] text-[var(--color-subtext)] font-mono uppercase block font-bold">No unique indicators</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Unique to B */}
+                                <div className="bg-zinc-950/50 border border-[var(--color-border)] rounded-2xl p-4 flex flex-col gap-3">
+                                  <div className="flex items-center gap-1.5 pb-2 border-b border-[var(--color-border)]">
+                                    <span className="w-2 h-2 rounded-full bg-[#F95C4B]"></span>
+                                    <span className="text-[9px] font-mono uppercase text-[var(--color-subtext)] font-black">Unique to Strategy Beta</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5 min-h-[44px] items-center">
+                                    {strategyComparisonResult.divergentIndicators?.strategyBOnly?.length > 0 ? (
+                                      strategyComparisonResult.divergentIndicators.strategyBOnly.map((ind: string, idx: number) => (
+                                        <span key={idx} className="bg-[#F95C4B]/10 text-[#F95C4B] border border-[#F95C4B]/20 px-2 py-1 rounded font-mono text-[9px] font-black uppercase tracking-wide">
+                                          {ind}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-[10px] text-[var(--color-subtext)] font-mono uppercase block font-bold">No unique indicators</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Shared Mutual */}
+                              {strategyComparisonResult.sharedIndicators?.length > 0 && (
+                                <div className="bg-emerald-950/10 border border-emerald-500/20 rounded-2xl p-4 select-none">
+                                  <div className="flex items-center gap-1.5 pb-2 border-b border-emerald-500/15">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    <span className="text-[9px] font-mono uppercase text-[var(--color-subtext)] font-black">Shared Mutual Indicators</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5 mt-3">
+                                    {strategyComparisonResult.sharedIndicators.map((ind: string, idx: number) => (
+                                      <span key={idx} className="bg-emerald-500/10 text-emerald-400 border border-emerald-550/20 px-2.5 py-1 rounded font-mono text-[9.5px] font-black uppercase tracking-wide">
+                                        {ind}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Detailed commentaries list with scrollable text selection */}
+                            <div className="space-y-5 pt-4 border-t border-[var(--color-border)] select-text text-sm leading-relaxed">
+                              {/* Divergence Analysis */}
+                              <div className="space-y-1.5">
+                                <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-semibold">🚨 Entry & Indicator Divergences Highlights</span>
+                                <div className="markdown-body font-sans text-[var(--color-text)]/90 text-xs sm:text-sm leading-relaxed font-semibold">
+                                  <Markdown>{strategyComparisonResult.divergenceAnalysis}</Markdown>
+                                </div>
+                              </div>
+
+                              {/* Entry Conditions */}
+                              <div className="space-y-1.5 pt-4 border-t border-[var(--color-border)]">
+                                <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-semibold">🟢 Long vs Short Setup Philosophies</span>
+                                <div className="markdown-body font-sans text-[var(--color-text)]/90 text-xs sm:text-sm leading-relaxed font-semibold">
+                                  <Markdown>{strategyComparisonResult.entryComparison}</Markdown>
+                                </div>
+                              </div>
+
+                              {/* Exits */}
+                              <div className="space-y-1.5 pt-4 border-t border-[var(--color-border)]">
+                                <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-semibold">🎯 Exit Trigger & Risk Profiles</span>
+                                <div className="markdown-body font-sans text-[var(--color-text)]/90 text-xs sm:text-sm leading-relaxed font-semibold">
+                                  <Markdown>{strategyComparisonResult.exitComparison}</Markdown>
+                                </div>
+                              </div>
+
+                              {/* Synergy check */}
+                              <div className="space-y-1.5 pt-4 border-t border-[var(--color-border)]">
+                                <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)] tracking-wider font-semibold">📊 Synergy Analysis (Running in Tandem)</span>
+                                <div className="markdown-body font-sans text-[var(--color-text)]/95 text-xs sm:text-sm leading-relaxed font-semibold bg-zinc-950/60 p-4 border border-[var(--color-border)] rounded-2xl">
+                                  <Markdown>{strategyComparisonResult.synergyCheck}</Markdown>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* 1. GREETING EMPTY STATE (CENTER SCREEN) */}
                 <AnimatePresence>
                   {!conversationStarted && chatHistory.length === 0 && (
                     <motion.div 
@@ -1357,131 +1782,135 @@ export default function App() {
                     <div ref={messagesEndRef} />
                   </div>
                 )}
+                </>
+                )}
               </div>
 
               {/* DOCK BAR ATTACHMENT AND INPUT PILL (BOTTOM) */}
-              <div className="p-4 shrink-0 pointer-events-auto z-30 select-none pb-6">
-                <div className="max-w-2xl mx-auto w-full relative">
-                  
-                  {/* File Pickers */}
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={handleImageChange} 
-                  />
-
-                  {/* Thumbnail snippet of attached image above dock */}
-                  <AnimatePresence>
-                    {attachedImage && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute bottom-full mb-3 left-0 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-2.5 flex items-center gap-3 shadow-2xl z-40 max-w-md"
-                      >
-                        <div className="relative rounded-lg overflow-hidden bg-[var(--color-bubble)] w-12 h-10 border border-[var(--color-border)] shrink-0 flex items-center justify-center">
-                          <img src={attachedImageUrl || undefined} alt="Attachment thumbnail" className="object-cover w-full h-full" referrerPolicy="no-referrer" />
-                          <button 
-                            onClick={() => setAttachedImage(null)}
-                            className="absolute top-0 right-0 bg-red-600 hover:bg-red-700 p-0.5 rounded-bl text-white transition-colors cursor-pointer"
-                            title="Remove attachment"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <div className="text-[10px] font-mono text-[var(--color-subtext)] flex flex-col gap-1 items-start justify-center">
-                          <span className="font-extrabold text-[#F95C4B] block uppercase tracking-wider">CHART SCREENSHOT MOUNTED</span>
-                          <span className="mb-1 block">Analyst will check alignment setup layouts</span>
-                          <button
-                            onClick={() => setIsDrawingOpen(true)}
-                            className="px-2 py-0.5 rounded bg-[#F95C4B]/10 border border-[#F95C4B]/20 hover:bg-[#F95C4B]/20 text-[#F95C4B] font-semibold text-[9px] tracking-wider uppercase transition-colors flex items-center gap-1 cursor-pointer"
-                            title="Highlight trends or indicators before submitting"
-                          >
-                            <Palette className="w-2.5 h-2.5" />
-                            Highlight / Draw
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {isDrawingOpen && attachedImage && (
-                    <DrawingOverlay
-                      imageUrl={attachedImageUrl!}
-                      mimeType={attachedImage.mimeType}
-                      onClose={() => setIsDrawingOpen(false)}
-                      onSave={(newBase64) => {
-                        setAttachedImage({
-                          data: newBase64,
-                          mimeType: attachedImage.mimeType
-                        });
-                        setIsDrawingOpen(false);
-                      }}
-                    />
-                  )}
-
-                  {/* Glassmorphic floating rounded pill-shaped container (The input dock - Chunky, Edge-to-Edge, Safe area aware) */}
-                  <div 
-                    className="flex items-center gap-2 bg-[var(--color-card)] border border-[var(--color-border)] rounded-full shadow-xl relative focus-within:border-[var(--color-accent)]/40 transition-all h-[64px] sm:h-[68px] w-[94%] sm:w-full mx-auto safe-mb mb-2"
-                    style={{ boxSizing: 'border-box', padding: '8px 24px' }}
-                  >
+              {!isComparisonMode && (
+                <div className="p-4 shrink-0 pointer-events-auto z-30 select-none pb-6">
+                  <div className="max-w-2xl mx-auto w-full relative">
                     
-                    {/* Left: Simple '+' icon for attaches */}
-                    <button
-                      onClick={triggerFileSelect}
-                      title="Attach Chart Screenshot"
-                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--color-badge-bg)] hover:bg-[var(--color-badge-bg)]/80 text-[var(--color-text)] flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer border border-[var(--color-border)] shadow-inner"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-
-                    {/* Center: Input field with Ask Boeki placeholder */}
+                    {/* File Pickers */}
                     <input 
-                      type="text"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder={isQuerying ? "Please wait for Boeki to analyze..." : "Ask Boeki"}
-                      disabled={isQuerying}
-                      className="flex-1 min-w-0 bg-transparent px-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text)]/40 focus:outline-none border-none py-2 font-sans font-semibold disabled:opacity-50"
-                      style={{ minWidth: 0 }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !isQuerying && (query.trim() || attachedImage)) {
-                          handleSendMessage();
-                        }
-                      }}
+                      type="file" 
+                      ref={fileInputRef} 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleImageChange} 
                     />
- 
-                    {/* Right: Premium, native iOS-style Send button that lightens when text is entered and acts as a "Stop" button when active */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isQuerying) {
-                          handleCancelQuery();
-                        } else if (query.trim() || attachedImage) {
-                          handleSendMessage();
-                        }
-                      }}
-                      disabled={!isQuerying && !query.trim() && !attachedImage}
-                      title={isQuerying ? "Stop active analysis request" : "Send message to Boeki"}
-                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer shadow-lg ${
-                        isQuerying
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                          : (query.trim() || attachedImage)
-                            ? 'bg-[#F95C4B] hover:opacity-95 text-white'
-                            : 'bg-[var(--color-badge-bg)] text-[var(--color-text)]/20 cursor-not-allowed'
-                      }`}
-                    >
-                      {isQuerying ? (
-                        <div className="w-3.5 h-3.5 bg-white rounded-sm"></div>
-                      ) : (
-                        <Send className="w-4.5 h-4.5 ml-0.5 text-white" />
+
+                    {/* Thumbnail snippet of attached image above dock */}
+                    <AnimatePresence>
+                      {attachedImage && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute bottom-full mb-3 left-0 bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-2.5 flex items-center gap-3 shadow-2xl z-40 max-w-md"
+                        >
+                          <div className="relative rounded-lg overflow-hidden bg-[var(--color-bubble)] w-12 h-10 border border-[var(--color-border)] shrink-0 flex items-center justify-center">
+                            <img src={attachedImageUrl || undefined} alt="Attachment thumbnail" className="object-cover w-full h-full" referrerPolicy="no-referrer" />
+                            <button 
+                              onClick={() => setAttachedImage(null)}
+                              className="absolute top-0 right-0 bg-red-600 hover:bg-red-700 p-0.5 rounded-bl text-white transition-colors cursor-pointer"
+                              title="Remove attachment"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="text-[10px] font-mono text-[var(--color-subtext)] flex flex-col gap-1 items-start justify-center">
+                            <span className="font-extrabold text-[#F95C4B] block uppercase tracking-wider">CHART SCREENSHOT MOUNTED</span>
+                            <span className="mb-1 block">Analyst will check alignment setup layouts</span>
+                            <button
+                              onClick={() => setIsDrawingOpen(true)}
+                              className="px-2 py-0.5 rounded bg-[#F95C4B]/10 border border-[#F95C4B]/20 hover:bg-[#F95C4B]/20 text-[#F95C4B] font-semibold text-[9px] tracking-wider uppercase transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Highlight trends or indicators before submitting"
+                            >
+                              <Palette className="w-2.5 h-2.5" />
+                              Highlight / Draw
+                            </button>
+                          </div>
+                        </motion.div>
                       )}
-                    </button>
+                    </AnimatePresence>
+
+                    {isDrawingOpen && attachedImage && (
+                      <DrawingOverlay
+                        imageUrl={attachedImageUrl!}
+                        mimeType={attachedImage.mimeType}
+                        onClose={() => setIsDrawingOpen(false)}
+                        onSave={(newBase64) => {
+                          setAttachedImage({
+                            data: newBase64,
+                            mimeType: attachedImage.mimeType
+                          });
+                          setIsDrawingOpen(false);
+                        }}
+                      />
+                    )}
+
+                    {/* Glassmorphic floating rounded pill-shaped container (The input dock - Chunky, Edge-to-Edge, Safe area aware) */}
+                    <div 
+                      className="flex items-center gap-2 bg-[var(--color-card)] border border-[var(--color-border)] rounded-full shadow-xl relative focus-within:border-[var(--color-accent)]/40 transition-all h-[64px] sm:h-[68px] w-[94%] sm:w-full mx-auto safe-mb mb-2"
+                      style={{ boxSizing: 'border-box', padding: '8px 24px' }}
+                    >
+                      
+                      {/* Left: Simple '+' icon for attaches */}
+                      <button
+                        onClick={triggerFileSelect}
+                        title="Attach Chart Screenshot"
+                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[var(--color-badge-bg)] hover:bg-[var(--color-badge-bg)]/80 text-[var(--color-text)] flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer border border-[var(--color-border)] shadow-inner"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+
+                      {/* Center: Input field with Ask Boeki placeholder */}
+                      <input 
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={isQuerying ? "Please wait for Boeki to analyze..." : "Ask Boeki"}
+                        disabled={isQuerying}
+                        className="flex-1 min-w-0 bg-transparent px-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text)]/40 focus:outline-none border-none py-2 font-sans font-semibold disabled:opacity-50"
+                        style={{ minWidth: 0 }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !isQuerying && (query.trim() || attachedImage)) {
+                            handleSendMessage();
+                          }
+                        }}
+                      />
+   
+                      {/* Right: Premium, native iOS-style Send button that lightens when text is entered and acts as a "Stop" button when active */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isQuerying) {
+                            handleCancelQuery();
+                          } else if (query.trim() || attachedImage) {
+                            handleSendMessage();
+                          }
+                        }}
+                        disabled={!isQuerying && !query.trim() && !attachedImage}
+                        title={isQuerying ? "Stop active analysis request" : "Send message to Boeki"}
+                        className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 active:scale-95 transition-all cursor-pointer shadow-lg ${
+                          isQuerying
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                            : (query.trim() || attachedImage)
+                              ? 'bg-[#F95C4B] hover:opacity-95 text-white'
+                              : 'bg-[var(--color-badge-bg)] text-[var(--color-text)]/20 cursor-not-allowed'
+                        }`}
+                      >
+                        {isQuerying ? (
+                          <div className="w-3.5 h-3.5 bg-white rounded-sm"></div>
+                        ) : (
+                          <Send className="w-4.5 h-4.5 ml-0.5 text-white" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
             </motion.div>
           ) : currentPage === 'admin' ? (
