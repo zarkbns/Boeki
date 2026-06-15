@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import DrawingOverlay from './components/DrawingOverlay';
+import Header from './components/Header';
 import BoekiLogoAsset from './boeki-logo-transparent.png';
 import { auth, db, storage } from './firestore-setup';
 import { 
@@ -384,7 +385,8 @@ export default function App() {
   const [loadingCurated, setLoadingCurated] = useState(false);
 
   // States for Side-by-Side Split View Strategy Comparison
-  const [isComparisonMode, setIsComparisonMode] = useState(false);
+  const isComparisonMode = false;
+  const setIsComparisonMode = (_val: boolean) => {};
   const [selectedStrategyIdA, setSelectedStrategyIdA] = useState<string | null>(null);
   const [selectedStrategyIdB, setSelectedStrategyIdB] = useState<string | null>(null);
   const [isComparingStrategies, setIsComparingStrategies] = useState(false);
@@ -1053,91 +1055,13 @@ export default function App() {
             >
               
               {/* PAGE 1 HEADER */}
-              <header className="px-4 md:px-6 py-4 border-b border-[var(--color-border)] shrink-0 select-none safe-pt bg-transparent">
-                <div className="flex items-center justify-between w-[94%] sm:w-full mx-auto">
-                  <div className="flex items-center gap-3">
-                    {/* Top Left: Hamburger Menu Trigger */}
-                    <button 
-                      id="hamburger-sidebar-toggle"
-                      onClick={() => setCurrentPage('dashboard')}
-                      className="p-2.5 -ml-2 rounded-xl text-[var(--color-text)] hover:bg-[var(--color-border)] active:scale-95 transition-all cursor-pointer"
-                      title="Open Dashboard"
-                    >
-                      <Menu className="w-5.1 h-5.1" />
-                    </button>
-
-                    <div className="relative">
-                      {/* Top Left Text: Boeki App name */}
-                      <button 
-                        onClick={() => setDropdownOpen(!dropdownOpen)}
-                        className="flex items-center gap-1.5 text-lg font-sans font-extrabold tracking-tight text-[var(--color-text)] hover:opacity-80 active:scale-95 transition-all text-left"
-                      >
-                        <img 
-                          src={BoekiLogoAsset} 
-                          alt="Boeki Logo" 
-                          className="h-10 sm:h-12 w-auto object-contain" 
-                        />
-                        <ChevronDown className="w-4.5 h-4.5 text-[var(--color-subtext)] mt-0.5" />
-                      </button>
-
-                      {dropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)}></div>
-                          <div className="absolute top-full left-0 mt-2.5 w-52 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)] p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1">
-                            <div className="px-3 py-1.5 text-[9px] font-mono text-[var(--color-subtext)] uppercase tracking-widest border-b border-[var(--color-border)] font-bold">Selected Agent</div>
-                            <button 
-                              onClick={() => { setDropdownOpen(false); }}
-                              className="w-full text-left px-3.5 py-2.5 text-xs text-[var(--color-text)] hover:bg-[var(--color-border)] rounded-xl flex items-center gap-2 mt-1 font-semibold"
-                            >
-                              <span className="w-2 h-2 rounded-full bg-emerald-550"></span>
-                              <span>Boeki Quant Core</span>
-                            </button>
-                            <button 
-                              onClick={() => { setDropdownOpen(false); }}
-                              className="w-full text-left px-3.5 py-2.5 text-xs text-[var(--color-text)]/40 hover:bg-[var(--color-border)] rounded-xl flex items-center gap-2 cursor-not-allowed mt-1"
-                              disabled
-                            >
-                              <span className="w-2 h-2 rounded-full bg-black/20"></span>
-                              <span>Multi-Agent Mesh (Soon)</span>
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Navigation Segmented Tab Switcher */}
-                  <div className="flex items-center gap-1 bg-zinc-950/60 p-1 rounded-xl border border-[var(--color-border)] select-none">
-                    <button 
-                      onClick={() => setIsComparisonMode(false)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-black uppercase transition-all whitespace-nowrap cursor-pointer ${!isComparisonMode ? 'bg-[#F95C4B] text-white shadow-md' : 'text-[var(--color-subtext)] hover:text-[var(--color-text)]'}`}
-                    >
-                      💬 Core Chat
-                    </button>
-                    <button 
-                      onClick={() => setIsComparisonMode(true)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-mono font-black uppercase transition-all whitespace-nowrap cursor-pointer ${isComparisonMode ? 'bg-[#F95C4B] text-white shadow-md' : 'text-[var(--color-subtext)] hover:text-[var(--color-text)]'}`}
-                    >
-                      🔀 Split-View Compare
-                    </button>
-                  </div>
-
-                  {/* Top Right: Profile badge to maintain layout balance */}
-                  <button 
-                    onClick={() => setShowProfileModal(true)}
-                    title="Profile Management"
-                    className="w-8 h-8 rounded-full bg-[var(--color-card)] border border-[var(--color-border)] text-[11px] font-black text-[var(--color-text)] flex items-center justify-center font-mono shadow-sm overflow-hidden shrink-0 cursor-pointer hover:scale-105 hover:border-[var(--color-text)] transition-all duration-200"
-                  >
-                    {currentUser?.photoURL ? (
-                      <img src={currentUser.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <span>
-                        {(currentUser?.displayName || 'Manasseh')[0].toUpperCase()}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </header>
+              <Header 
+                setCurrentPage={setCurrentPage}
+                dropdownOpen={dropdownOpen}
+                setDropdownOpen={setDropdownOpen}
+                setShowProfileModal={setShowProfileModal}
+                currentUser={currentUser}
+              />
 
               {/* BODY MESSAGES / GREETING CONTAINER */}
               <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 relative flex flex-col w-full h-full">
