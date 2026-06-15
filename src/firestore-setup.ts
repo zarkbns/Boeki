@@ -69,7 +69,13 @@ if (!resolvedDbId || resolvedDbId === '(default)' || resolvedDbId === 'default' 
   resolvedDbId = firebaseConfigJson.firestoreDatabaseId;
 }
 
-const dbName = resolvedDbId && resolvedDbId !== '(default)' && resolvedDbId !== 'default' && resolvedDbId.trim() !== ''
+// On default Spark/free billing tiers, named databases (such as custom 'ai-studio-' IDs) do not exist or are disabled.
+// Therefore, we fall back to '(default)' (undefined) database if the ID starts with 'ai-studio-' to ensure connection succeeds.
+const dbName = resolvedDbId && 
+               resolvedDbId !== '(default)' && 
+               resolvedDbId !== 'default' && 
+               !resolvedDbId.startsWith('ai-studio-') && 
+               resolvedDbId.trim() !== ''
   ? resolvedDbId
   : undefined;
 
