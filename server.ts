@@ -274,10 +274,17 @@ app.post('/api/rag/query', async (req, res) => {
     });
     res.json(result);
   } catch (error: any) {
-    console.error('[HTTP Route ERROR] query flow failed:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('[HTTP Route ERROR] query flow failed:', {
+      message: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString()
+    });
     res.status(500).json({
+      success: false,
       error: 'RAG retrieval or premium synthesis failed',
-      details: error instanceof Error ? error.message : String(error)
+      details: errorMessage
     });
   }
 });
@@ -445,7 +452,23 @@ async function startServer() {
   });
 }
 
-// Global exception handling
+// Global exception handling and prevention of unhandled promise leaks on Serverless Vercel
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION PREVENTED]:', {
+    message: err instanceof Error ? err.message : String(err),
+    stack: err instanceof Error ? err.stack : undefined,
+    timestamp: new Date().toISOString()
+  });
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION PREVENTED]:', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+    timestamp: new Date().toISOString()
+  });
+});
+
 if (!process.env.VERCEL) {
   startServer().catch((err) => {
     console.error('[FATAL SERVER ERROR] Failed to bootstrap Express + Vite server:', err);

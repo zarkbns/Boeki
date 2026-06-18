@@ -4,7 +4,7 @@
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigJson from '../firebase-applet-config.json';
@@ -82,9 +82,17 @@ const dbName = resolvedDbId &&
 
 console.log('[Firestore Setup] Final dbName used for initializeFirestore:', dbName);
 
-export const db = initializeFirestore(app, {
-  ignoreUndefinedProperties: true
-}, dbName);
+let tempDb;
+try {
+  tempDb = initializeFirestore(app, {
+    ignoreUndefinedProperties: true
+  }, dbName);
+} catch (e) {
+  console.log('[Firestore Setup] initializeFirestore threw/already initialized, retrieving with getFirestore:', e);
+  tempDb = dbName ? getFirestore(app, dbName) : getFirestore(app);
+}
+
+export const db = tempDb;
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);

@@ -38,7 +38,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import DrawingOverlay from './components/DrawingOverlay';
 import Header from './components/Header';
-import BoekiLogoAsset from './boeki-logo-transparent.png';
 import { auth, db, storage } from './firestore-setup';
 import { 
   onAuthStateChanged, 
@@ -1626,19 +1625,101 @@ export default function App() {
                           {isBot && (message.coinData || message.strategiesUsed) && (
                             <div className="w-[94%] sm:w-auto sm:max-w-[85%] grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5 pl-3 border-l-2 border-[var(--color-border)]">
                               {message.coinData && (
-                                <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-4 flex items-center justify-between shadow-sm">
-                                  <div>
-                                    <span className="block text-[8px] font-mono text-[var(--color-subtext)] uppercase tracking-widest font-bold">Coingecko Live</span>
-                                    <span className="text-[11px] font-black text-[var(--color-text)] mt-1 block">{message.coinData.name} ({message.coinData.symbol})</span>
+                                <div className="space-y-2 col-span-1 sm:col-span-2 text-left">
+                                  <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                                    <div>
+                                      <span className="block text-[8px] font-mono text-[var(--color-subtext)] uppercase tracking-widest font-bold">Coingecko Live</span>
+                                      <span className="text-[11px] font-black text-[var(--color-text)] mt-1 block">{message.coinData.name} ({message.coinData.symbol})</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="block text-xs font-mono font-bold text-[var(--color-text)]">${message.coinData.priceUsd.toLocaleString()}</span>
+                                      <span className={`text-[9px] font-mono font-bold ${
+                                        message.coinData.change24h >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                      }`}>
+                                        {message.coinData.change24h >= 0 ? '▲ +' : '▼ '}{message.coinData.change24h}%
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <span className="block text-xs font-mono font-bold text-[var(--color-text)]">${message.coinData.priceUsd.toLocaleString()}</span>
-                                    <span className={`text-[9px] font-mono font-bold ${
-                                      message.coinData.change24h >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                                    }`}>
-                                      {message.coinData.change24h >= 0 ? '▲ +' : '▼ '}{message.coinData.change24h}%
-                                    </span>
-                                  </div>
+
+                                  {message.coinData.indicators && (
+                                    <div className="bg-zinc-950/50 border border-[var(--color-border)] rounded-2xl p-4 space-y-3 shadow-inner">
+                                      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
+                                        <span className="text-[9px] font-mono font-black text-[#F95C4B] uppercase tracking-wider">🔬 Computed Indicator Alignment</span>
+                                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${
+                                          message.coinData.indicators.marketStance === 'markup' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' :
+                                          message.coinData.indicators.marketStance === 'markdown' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/25' :
+                                          message.coinData.indicators.marketStance === 'accumulation' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25' :
+                                          'bg-blue-500/10 text-blue-400 border border-blue-500/25'
+                                        }`}>
+                                          {message.coinData.indicators.marketStance}
+                                        </span>
+                                      </div>
+
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-left">
+                                        {/* RSI */}
+                                        <div className="bg-zinc-900/40 p-2 rounded-xl border border-[var(--color-border)] space-y-0.5">
+                                          <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)]">RSI (14)</span>
+                                          <span className={`text-xs font-mono font-black ${
+                                            message.coinData.indicators.rsi > 70 ? 'text-rose-400' :
+                                            message.coinData.indicators.rsi < 30 ? 'text-emerald-400' :
+                                            'text-[var(--color-text)]'
+                                          }`}>
+                                            {message.coinData.indicators.rsi}
+                                          </span>
+                                        </div>
+
+                                        {/* MACD */}
+                                        <div className="bg-zinc-900/40 p-2 rounded-xl border border-[var(--color-border)] space-y-0.5">
+                                          <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)]">MACD Histogram</span>
+                                          <span className={`text-[10px] font-mono font-bold truncate block ${
+                                            message.coinData.indicators.macd.histogram >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                          }`}>
+                                            {message.coinData.indicators.macd.histogram >= 0 ? '▲ Bullish' : '▼ Bearish'} ({message.coinData.indicators.macd.histogram})
+                                          </span>
+                                        </div>
+
+                                        {/* Moving Averages */}
+                                        <div className="bg-zinc-900/40 p-2 rounded-xl border border-[var(--color-border)] space-y-0.5">
+                                          <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)]">Trend EMA</span>
+                                          <span className={`text-[10px] font-mono font-black rounded capitalize block ${
+                                            message.coinData.indicators.movingAverages.trendAlignment === 'bullish' ? 'text-emerald-400' :
+                                            message.coinData.indicators.movingAverages.trendAlignment === 'bearish' ? 'text-rose-400' :
+                                            'text-amber-400'
+                                          }`}>
+                                            {message.coinData.indicators.movingAverages.trendAlignment}
+                                          </span>
+                                        </div>
+
+                                        {/* ADX / Volatility */}
+                                        <div className="bg-zinc-900/40 p-2 rounded-xl border border-[var(--color-border)] space-y-0.5">
+                                          <span className="block text-[8px] font-mono uppercase text-[var(--color-subtext)]">ADX (Strength)</span>
+                                          <span className="text-xs font-mono font-black text-slate-300 block">
+                                            {message.coinData.indicators.adx} ({message.coinData.indicators.adx > 25 ? 'Strong' : 'Weak'})
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Bollinger Bands & Support/Resistance */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left pt-1 border-t border-zinc-900">
+                                        <div className="text-[10px] font-mono space-y-1">
+                                          <span className="block text-[8px] uppercase text-[var(--color-subtext)] font-bold">Bollinger Bands Range</span>
+                                          <div className="flex gap-1 items-center">
+                                            <span className="text-rose-400">${message.coinData.indicators.bollingerBands.upper.toLocaleString()}</span>
+                                            <span className="text-[9px] text-zinc-500">↔</span>
+                                            <span className="text-emerald-400">${message.coinData.indicators.bollingerBands.lower.toLocaleString()}</span>
+                                          </div>
+                                        </div>
+                                        <div className="text-[10px] font-mono space-y-1">
+                                          <span className="block text-[8px] uppercase text-[var(--color-subtext)] font-bold">Key Pivot Ranges</span>
+                                          <div className="flex gap-1 items-center">
+                                            <span className="text-emerald-400" title="Primary Support">S1: ${message.coinData.indicators.supportResistance.support1.toLocaleString()}</span>
+                                            <span className="text-[9px] text-zinc-500">|</span>
+                                            <span className="text-rose-400" title="Primary Resistance">R1: ${message.coinData.indicators.supportResistance.resistance1.toLocaleString()}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
 
@@ -2120,9 +2201,36 @@ export default function App() {
 
                   <div className="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">
                     {loadingCurated ? (
-                      <div className="flex items-center justify-center py-12 gap-2 text-[var(--color-subtext)] font-mono text-xs">
-                        <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                        Fetching Curated Set...
+                      <div className="space-y-3.5">
+                        {[1, 2].map((i) => (
+                          <div 
+                            key={`curated-skel-${i}`}
+                            className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-5 flex flex-col justify-between gap-4 animate-pulse"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between gap-2 border-b border-[var(--color-border)] pb-2">
+                                <div className="space-y-2 w-full">
+                                  <div className="h-4 bg-zinc-800 rounded w-2/3"></div>
+                                  <div className="h-2.5 bg-zinc-800/60 rounded w-1/3"></div>
+                                </div>
+                                <div className="h-4 bg-zinc-800/60 rounded w-12 shrink-0"></div>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="h-3 bg-zinc-800/40 rounded w-full"></div>
+                                <div className="h-3 bg-zinc-800/40 rounded w-5/6"></div>
+                                <div className="h-3 bg-zinc-800/40 rounded w-4/5"></div>
+                              </div>
+                              <div className="flex gap-1.5 pt-1">
+                                <div className="h-4.5 bg-zinc-800/60 rounded-full w-10"></div>
+                                <div className="h-4.5 bg-zinc-800/60 rounded-full w-14"></div>
+                                <div className="h-4.5 bg-zinc-800/60 rounded-full w-12"></div>
+                              </div>
+                            </div>
+                            <div className="border-t border-[var(--color-border)] pt-3 flex items-center justify-end">
+                              <div className="h-8 bg-zinc-800 rounded-xl w-24"></div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : curatedStrategies.length === 0 ? (
                       <div className="text-center py-12 text-[var(--color-subtext)] font-mono text-xs bg-[var(--color-card)] rounded-[2rem] border border-dashed border-[var(--color-border)] px-4">
@@ -2193,9 +2301,16 @@ export default function App() {
 
                   <div className="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">
                     {loadingPastConversations ? (
-                      <div className="flex items-center justify-center py-12 gap-2 text-[var(--color-subtext)] font-mono text-xs">
-                        <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                        Retrieving History...
+                      <div className="space-y-3">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div 
+                            key={`conv-skel-${i}`}
+                            className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-3.5 flex flex-col gap-2.5 animate-pulse"
+                          >
+                            <div className="h-4.5 bg-zinc-800 rounded w-3/4"></div>
+                            <div className="h-3 bg-zinc-800/50 rounded w-1/4"></div>
+                          </div>
+                        ))}
                       </div>
                     ) : pastConversations.length === 0 ? (
                       <div className="text-center py-12 text-[var(--color-subtext)] font-mono text-xs bg-[var(--color-card)] rounded-[2rem] border border-dashed border-[var(--color-border)] px-4">
@@ -2332,9 +2447,47 @@ export default function App() {
               {/* Scrollable grid list */}
               <div className="flex-1 overflow-y-auto space-y-4 pb-12 select-none">
                 {loadingStrategiesList ? (
-                  <div className="flex flex-col items-center justify-center py-16 gap-3">
-                    <Loader2 className="w-8 h-8 text-[#F95C4B] animate-spin" />
-                    <span className="font-mono text-xs text-[var(--color-subtext)]">Retrieving Cloud Database Records...</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div 
+                        key={`strat-skel-${i}`} 
+                        className="bg-zinc-950/40 border border-[var(--color-border)] rounded-2xl p-5 flex flex-col justify-between gap-4 animate-pulse"
+                      >
+                        <div className="space-y-3.5">
+                          <div className="flex items-start justify-between gap-2 border-b border-[var(--color-border)] pb-2.5">
+                            <div className="space-y-1.5 w-full">
+                              <div className="h-4.5 bg-zinc-800 rounded w-2/3"></div>
+                              <div className="h-2.5 bg-zinc-800/60 rounded w-1/3"></div>
+                            </div>
+                            <div className="h-4 bg-zinc-800/60 rounded w-14 shrink-0"></div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <div className="h-2.5 bg-zinc-800/60 rounded w-1/3 mb-1.5"></div>
+                              <div className="flex flex-wrap gap-1.5">
+                                <div className="h-4 bg-zinc-800/40 rounded w-10"></div>
+                                <div className="h-4 bg-zinc-800/40 rounded w-12"></div>
+                                <div className="h-4 bg-zinc-800/40 rounded w-8"></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="h-2.5 bg-zinc-800/60 rounded w-1/4 mb-1.5"></div>
+                              <div className="space-y-1.5">
+                                <div className="h-3 bg-zinc-800/40 rounded w-full"></div>
+                                <div className="h-3 bg-zinc-800/40 rounded w-5/6"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border)] pt-3.5">
+                          <div className="h-8 bg-zinc-800 rounded-xl w-20"></div>
+                          <div className="h-8 bg-zinc-800 rounded-xl w-24"></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : strategiesList.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

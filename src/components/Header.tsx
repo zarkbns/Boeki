@@ -1,6 +1,5 @@
 import React from 'react';
 import { Menu, ChevronDown } from 'lucide-react';
-import BoekiLogoAsset from '../boeki-logo-transparent.png';
 
 interface HeaderProps {
   setCurrentPage: (page: any) => void;
@@ -37,12 +36,11 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-1.5 text-lg font-sans font-extrabold tracking-tight text-[var(--color-text)] hover:opacity-80 active:scale-95 transition-all text-left"
             >
-              <img 
-                src={BoekiLogoAsset} 
-                alt="Boeki Logo" 
-                className="h-10 sm:h-12 w-auto object-contain" 
-              />
-              <ChevronDown className="w-4.5 h-4.5 text-[var(--color-subtext)] mt-0.5" />
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-black text-[var(--color-text)] tracking-wider">BOEKI</span>
+                <span className="text-[8px] font-mono font-bold tracking-widest text-[#F95C4B] uppercase">Quant Core</span>
+              </div>
+              <ChevronDown className="w-4 h-4 text-[var(--color-subtext)] ml-1 shrink-0" />
             </button>
 
             {dropdownOpen && (

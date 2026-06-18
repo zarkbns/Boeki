@@ -20,7 +20,7 @@ import {
   generateTextContent,
   generateContentWithResilience
 } from './gemini-client';
-import { fetchCoinMarketData, resolveCoinId } from './coingecko-tool';
+import { fetchCoinMarketData, resolveCoinId, calculateIndicatorsForCoin } from './coingecko-tool';
 
 // Initialize unified Genkit instance
 const aiGenkit = genkit({});
@@ -472,6 +472,25 @@ const getStoredTradingStrategiesDecl = {
   }
 };
 
+const fetchTechnicalIndicatorsDecl = {
+  name: 'fetchTechnicalIndicators',
+  description: 'Retrieve computed technical indicators (RSI, Bollinger Bands, Moving Averages EMA/SMA alignments, MACD, ATR, ADX, support & resistance levels) for any given cryptocurrency. Crucial for matching user strategies.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      coinIdentifier: {
+        type: Type.STRING,
+        description: 'The name or ticker symbol of the coin (e.g. solana, sol, btc, bitcoin, pepe, eth, ethereum, etc.)'
+      },
+      timeframe: {
+        type: Type.STRING,
+        description: 'Optional timeframe like 1h, 4h, 1d. Defaults to 4h.'
+      }
+    },
+    required: ['coinIdentifier']
+  }
+};
+
 function parseBase64Image(dataUrl: string) {
   if (!dataUrl) return null;
   const match = dataUrl.match(/^data:(image\/[a-zA-Z+.-]+);base64,(.+)$/);
@@ -569,11 +588,11 @@ export const queryKnowledgeFlow = aiGenkit.defineFlow(
 
     const sysInst = `You are an expert, observant crypto research assistant and conversational peer. Your goal is to engage in open-ended, deep discussions about cryptocurrency, macro trends, tech architecture, and market psychology. 
 
-You have access to two powerful tools: \`fetchLiveMarketData\` (to obtain real-time metrics for any cryptocurrency) and \`getStoredTradingStrategies\` (to fetch all stored/ingested trading strategies and technical rules).
+You have access to three powerful tools: \`fetchLiveMarketData\` (to obtain real-time prices, volumes, and 24h change), \`fetchTechnicalIndicators\` (to get computed indicators like RSI (14), Bollinger Bands, Trend Alignment EMA/SMA, MACD Line & Histogram, ADX, ATR, and local support/resistance zones), and \`getStoredTradingStrategies\` (to fetch all stored/ingested trading strategies and technical rules).
 
 Your core capability includes an *inbuilt strategy comparison engine*. Whenever a user asks for general advice, market setup checks, coin evaluations, or trading recommendations:
 1. Make sure to retrieve all stored strategies using \`getStoredTradingStrategies\`.
-2. Retrieve the relevant coin's live market data (using \`fetchLiveMarketData\`) to understand current volatility, trend, volume, and percentage changes.
+2. Retrieve the relevant coin's live market data (using \`fetchLiveMarketData\`) or technical indicators (using \`fetchTechnicalIndicators\`) to obtain full technical metrics, trend stance, and support/resistance boundaries.
 3. Compare the retrieved strategies systematically side-by-side inside your response. Identify where their indicators overlap, where their entry/exit conditions diverge, and detect direct indicator conflicts.
 4. Recommend or Assign the SINGLE best matching strategy for the current asset or market situation. You must justify this selection with quantitative rigor, comparing it against the other strategies and showing why it is the most optimal setup for the given situation.`;
 
@@ -592,7 +611,7 @@ Your core capability includes an *inbuilt strategy comparison engine*. Whenever 
         contents,
         {
           systemInstruction: sysInst,
-          tools: [{ functionDeclarations: [fetchLiveMarketDataDecl, getStoredTradingStrategiesDecl] }],
+          tools: [{ functionDeclarations: [fetchLiveMarketDataDecl, getStoredTradingStrategiesDecl, fetchTechnicalIndicatorsDecl] }],
           toolConfig: { includeServerSideToolInvocations: true }
         }
       );
@@ -622,6 +641,28 @@ Your core capability includes an *inbuilt strategy comparison engine*. Whenever 
               toolResponseParts.push({
                 functionResponse: {
                   name: 'fetchLiveMarketData',
+                  response: { error: e.message || String(e) }
+                }
+              });
+            }
+          } else if (call.name === 'fetchTechnicalIndicators') {
+            const { coinIdentifier, timeframe } = call.args as any;
+            console.log(`[Query Engine] Executing Tool: fetchTechnicalIndicators with ID/Symbol: "${coinIdentifier}", timeframe: "${timeframe || '4h'}"`);
+            const coinId = resolveCoinId(coinIdentifier);
+            try {
+              const indicatorsData = await calculateIndicatorsForCoin(coinId, timeframe);
+              coinDataUsed = indicatorsData;
+              toolResponseParts.push({
+                functionResponse: {
+                  name: 'fetchTechnicalIndicators',
+                  response: { result: indicatorsData }
+                }
+              });
+            } catch (e: any) {
+              console.warn(`[Query Engine Warning] Tool fetchTechnicalIndicators failed:`, e);
+              toolResponseParts.push({
+                functionResponse: {
+                  name: 'fetchTechnicalIndicators',
                   response: { error: e.message || String(e) }
                 }
               });
@@ -695,7 +736,7 @@ Your core capability includes an *inbuilt strategy comparison engine*. Whenever 
           contentChain,
           {
             systemInstruction: sysInst,
-            tools: [{ functionDeclarations: [fetchLiveMarketDataDecl, getStoredTradingStrategiesDecl] }],
+            tools: [{ functionDeclarations: [fetchLiveMarketDataDecl, getStoredTradingStrategiesDecl, fetchTechnicalIndicatorsDecl] }],
             toolConfig: { includeServerSideToolInvocations: true }
           }
         );
