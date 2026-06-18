@@ -7,7 +7,7 @@ import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import { createServer as createViteServer } from 'vite';
-import { ingestVideoFlow, queryKnowledgeFlow, getStoredStrategies } from './src/genkit-rag';
+import { ingestVideoFlow, queryKnowledgeFlow, getStoredStrategies, clearAllStoredStrategies } from './src/genkit-rag';
 import { generateTextContent } from './src/gemini-client';
 
 const app = express();
@@ -298,6 +298,22 @@ app.get('/api/strategies', async (req, res) => {
     res.json({ success: true, strategies: data });
   } catch (error: any) {
     console.error('[HTTP Route ERROR] fetching strategies failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// 4b-reset. POST /api/strategies/reset
+// Drops/deletes all trading strategies in both trading_strategies and global_strategies Firestore collections.
+app.post('/api/strategies/reset', async (req, res) => {
+  try {
+    console.log('[HTTP Route] Received request to reset all stored strategies database memory...');
+    const result = await clearAllStoredStrategies();
+    res.json(result);
+  } catch (error: any) {
+    console.error('[HTTP Route ERROR] resetting strategies database failed:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error)

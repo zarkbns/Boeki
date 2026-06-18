@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-1.5 text-lg font-sans font-extrabold tracking-tight text-[var(--color-text)] hover:opacity-80 active:scale-95 transition-all text-left"
             >
               <div className="flex flex-col text-left">
-                <span className="text-sm font-black text-[var(--color-text)] tracking-wider">BOEKI</span>
+                <span className="text-sm font-comfortaa font-black text-[var(--color-text)] tracking-wider">BOEKI</span>
                 <span className="text-[8px] font-mono font-bold tracking-widest text-[#F95C4B] uppercase">Quant Core</span>
               </div>
               <ChevronDown className="w-4 h-4 text-[var(--color-subtext)] ml-1 shrink-0" />

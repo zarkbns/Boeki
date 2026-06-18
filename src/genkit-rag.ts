@@ -12,7 +12,9 @@ import {
   getDocs, 
   query as firestoreQuery,
   limit as firestoreLimit,
-  where as firestoreWhere
+  where as firestoreWhere,
+  deleteDoc,
+  doc
 } from 'firebase/firestore';
 import { extractYoutubeId, fetchYoutubeTranscript, extractPlaylistId, fetchPlaylistVideoUrls, extractAndStoreTradingStrategy } from './youtube-utils';
 import { 
@@ -825,5 +827,38 @@ export async function getStoredStrategies(userId?: string): Promise<any[]> {
   }
 
   return [...userAndPublicStrategies, ...globalStrategiesFlat];
+}
+
+/**
+ * Reset all user and global strategies in Firestore.
+ */
+export async function clearAllStoredStrategies(): Promise<{ success: boolean; clearedCount: number; message: string }> {
+  const strategiesCol = collection(db, 'trading_strategies');
+  const globalCol = collection(db, 'global_strategies');
+  
+  let clearedCount = 0;
+  
+  const snapUser = await getDocs(strategiesCol);
+  const snapGlobal = await getDocs(globalCol);
+  
+  const deletePromises: Promise<void>[] = [];
+  
+  snapUser.docs.forEach((d) => {
+    deletePromises.push(deleteDoc(doc(db, 'trading_strategies', d.id)));
+    clearedCount++;
+  });
+  
+  snapGlobal.docs.forEach((d) => {
+    deletePromises.push(deleteDoc(doc(db, 'global_strategies', d.id)));
+    clearedCount++;
+  });
+  
+  await Promise.all(deletePromises);
+  
+  return {
+    success: true,
+    clearedCount,
+    message: `Successfully reset memory of ${clearedCount} past custom strategies. Active database has been purged back to standard local baseline systems.`
+  };
 }
 

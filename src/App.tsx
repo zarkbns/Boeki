@@ -33,7 +33,8 @@ import {
   Camera,
   Copy,
   Check,
-  Palette
+  Palette,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import DrawingOverlay from './components/DrawingOverlay';
@@ -452,6 +453,41 @@ export default function App() {
       console.warn('Failed to load strategies list', e);
     } finally {
       setLoadingStrategiesList(false);
+    }
+  };
+
+  const [isResettingStrategies, setIsResettingStrategies] = useState(false);
+  const [resetStrategiesMsg, setResetStrategiesMsg] = useState<string | null>(null);
+
+  const handleResetStrategies = async () => {
+    if (!window.confirm("Are you sure you want to reset all custom strategies in the AI Memory database and revert to baseline setups? This action cannot be undone.")) {
+      return;
+    }
+    setIsResettingStrategies(true);
+    setResetStrategiesMsg(null);
+    try {
+      const response = await fetch('/api/strategies/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setResetStrategiesMsg(data.message || "Reset completed successfully!");
+        setStrategiesList([]); // clear list locally
+        setTimeout(() => {
+          setResetStrategiesMsg(null);
+          fetchStrategies(currentUser?.uid);
+        }, 3000);
+      } else {
+        setResetStrategiesMsg(`Error: ${data.error || "Failed to reset strategies."}`);
+      }
+    } catch (e: any) {
+      console.error('Error during strategies reset:', e);
+      setResetStrategiesMsg(`Error: ${e.message || "Network error."}`);
+    } finally {
+      setIsResettingStrategies(false);
     }
   };
 
@@ -905,7 +941,7 @@ export default function App() {
               </svg>
             </div>
             
-            <h1 className="text-3xl font-sans font-black tracking-tight text-[var(--color-text)] leading-none">
+            <h1 className="text-3xl font-comfortaa font-black tracking-tight text-[var(--color-text)] leading-none">
               Boeki
             </h1>
             <span className="text-[10px] font-mono text-[var(--color-subtext)] uppercase tracking-widest mt-1.5 font-bold">
@@ -987,7 +1023,7 @@ export default function App() {
 
           {/* Clean Sign-in title header with generous padding */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-sans font-extrabold text-[var(--color-text)] tracking-tight leading-none mb-2">
+            <h2 className="text-2xl font-comfortaa font-extrabold text-[var(--color-text)] tracking-tight leading-none mb-2">
               Sign in to get started
             </h2>
             <p className="text-[10px] font-mono text-[var(--color-subtext)] uppercase tracking-widest font-extrabold mt-1">
@@ -1069,7 +1105,7 @@ export default function App() {
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-[var(--color-border)] pb-4 select-none shrink-0">
                       <div>
-                        <h2 className="text-base font-sans font-black text-[var(--color-text)] flex items-center gap-2">
+                        <h2 className="text-base font-comfortaa font-black text-[var(--color-text)] flex items-center gap-2">
                           <Sparkles className="w-4.5 h-4.5 text-[#F95C4B]" />
                           <span>Strategy Split-View Analysis</span>
                         </h2>
@@ -1316,7 +1352,7 @@ export default function App() {
                                   <Activity className="w-5 h-5 text-[#F95C4B]" />
                                 </div>
                                 <div>
-                                  <h3 className="text-sm font-sans font-black text-[var(--color-text)]">Comparison Report</h3>
+                                  <h3 className="text-sm font-comfortaa font-black text-[var(--color-text)]">Comparison Report</h3>
                                   <p className="text-[9px] font-mono text-[var(--color-subtext)] leading-none uppercase tracking-wider mt-1">Side-by-side indicator analysis</p>
                                 </div>
                               </div>
@@ -1935,7 +1971,7 @@ export default function App() {
               {/* ADMIN HEADER */}
               <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4.5 shrink-0 select-none safe-pt pt-3 w-[94%] sm:w-full mx-auto">
                 <div className="flex flex-col">
-                  <h1 className="text-2xl font-sans font-black tracking-tight text-[var(--color-text)] leading-none">
+                  <h1 className="text-2xl font-comfortaa font-black tracking-tight text-[var(--color-text)] leading-none">
                     Admin Strategy Console
                   </h1>
                   <span className="text-[10px] font-mono text-[#F95C4B] uppercase tracking-widest mt-1.5 font-bold">
@@ -1975,7 +2011,7 @@ export default function App() {
                     <Youtube className="w-6 h-6 text-[#F95C4B]" />
                   </div>
                   <div>
-                    <h2 className="text-base font-sans font-bold text-[var(--color-text)]">Curated Platform Strategy Linker</h2>
+                    <h2 className="text-base font-comfortaa font-bold text-[var(--color-text)]">Curated Platform Strategy Linker</h2>
                     <p className="text-[10.5px] text-[var(--color-subtext)] font-mono mt-0.5 leading-relaxed font-semibold">Publish authoritative strategy indexes parsed from premium market tutorials</p>
                   </div>
                 </div>
@@ -2161,7 +2197,7 @@ export default function App() {
               <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4.5 shrink-0 select-none safe-pt pt-3 w-[94%] sm:w-full mx-auto">
                 <div className="flex flex-col">
                   {/* Application Title bold clean typeface (Page 2) */}
-                  <h1 className="text-2xl font-sans font-black tracking-tight text-[var(--color-text)] leading-none">
+                  <h1 className="text-2xl font-comfortaa font-black tracking-tight text-[var(--color-text)] leading-none">
                     Boeki
                   </h1>
                   <span className="text-[10px] font-mono text-[var(--color-subtext)] uppercase tracking-widest mt-1.5 font-bold">
@@ -2421,12 +2457,21 @@ export default function App() {
                     <Database className="w-4 h-4 text-[#F95C4B]" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-sans font-black text-[var(--color-text)]">Firestore Strategies Library</h3>
+                    <h3 className="text-sm font-comfortaa font-black text-[var(--color-text)]">Firestore Strategies Library</h3>
                     <p className="text-[10px] font-mono text-[var(--color-subtext)] leading-none mt-1">Active trading setups loaded from cloud database constraints</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button 
+                    onClick={handleResetStrategies}
+                    disabled={isResettingStrategies}
+                    className="p-1.5 rounded-lg text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer disabled:opacity-45 flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase transition-all"
+                    title="Reset Library & Purge Database Memory"
+                  >
+                    <Trash2 className={`w-3.5 h-3.5 ${isResettingStrategies ? 'animate-pulse' : ''}`} />
+                    <span className="hidden sm:inline">Reset Library</span>
+                  </button>
                   <button 
                     onClick={() => fetchStrategies(currentUser?.uid)}
                     disabled={loadingStrategiesList}
@@ -2443,6 +2488,12 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {resetStrategiesMsg && (
+                <div className="p-3 mb-4 rounded-xl text-[10px] font-mono uppercase font-black bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center animate-pulse">
+                  {resetStrategiesMsg}
+                </div>
+              )}
 
               {/* Scrollable grid list */}
               <div className="flex-1 overflow-y-auto space-y-4 pb-12 select-none">

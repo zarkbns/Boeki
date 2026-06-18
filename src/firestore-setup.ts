@@ -39,7 +39,10 @@ const getEnvValue = (key: string): string | undefined => {
       val.trim() === '' ||
       uppercaseVal.includes('PLACEHOLDER') ||
       uppercaseVal.startsWith('YOUR_') ||
-      uppercaseVal.startsWith('MY_')
+      uppercaseVal.startsWith('MY_') ||
+      uppercaseVal === 'NOT-NEEDED' ||
+      uppercaseVal === 'NOT_NEEDED' ||
+      uppercaseVal === 'NONE'
     ) {
       return undefined;
     }
@@ -50,15 +53,30 @@ const getEnvValue = (key: string): string | undefined => {
 
 // Resolve configuration strictly using environment variables or fallback safely to JSON config
 const firebaseConfig = {
-  projectId: getEnvValue('VITE_FIREBASE_PROJECT_ID') || firebaseConfigJson.projectId,
-  appId: getEnvValue('VITE_FIREBASE_APP_ID') || firebaseConfigJson.appId,
-  apiKey: getEnvValue('VITE_FIREBASE_API_KEY') || firebaseConfigJson.apiKey,
-  authDomain: getEnvValue('VITE_FIREBASE_AUTH_DOMAIN') || firebaseConfigJson.authDomain,
-  firestoreDatabaseId: getEnvValue('VITE_FIREBASE_FIRESTORE_DATABASE_ID') || firebaseConfigJson.firestoreDatabaseId,
-  storageBucket: getEnvValue('VITE_FIREBASE_STORAGE_BUCKET') || firebaseConfigJson.storageBucket,
-  messagingSenderId: getEnvValue('VITE_FIREBASE_MESSAGING_SENDER_ID') || firebaseConfigJson.messagingSenderId,
-  measurementId: getEnvValue('VITE_FIREBASE_MEASUREMENT_ID') || firebaseConfigJson.measurementId,
+  projectId: getEnvValue('VITE_FIREBASE_PROJECT_ID'),
+  appId: getEnvValue('VITE_FIREBASE_APP_ID'),
+  apiKey: getEnvValue('VITE_FIREBASE_API_KEY'),
+  authDomain: getEnvValue('VITE_FIREBASE_AUTH_DOMAIN'),
+  firestoreDatabaseId: getEnvValue('VITE_FIREBASE_FIRESTORE_DATABASE_ID'),
+  storageBucket: getEnvValue('VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnvValue('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  measurementId: getEnvValue('VITE_FIREBASE_MEASUREMENT_ID') || '',
 };
+
+// Check if environment variables are fully declared (e.g. for production boeki-pro instance)
+const hasEnvConfig = !!(firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.appId);
+
+if (!hasEnvConfig) {
+  console.warn('[Firestore Setup] WARNING: Required Firebase environment variables are missing. Falling back to local sandbox configuration (firebase-applet-config.json) for development safety.');
+  // Fall back to JSON config ONLY when env is empty, preventing any hardcoding or sandbox leaks in prod
+  firebaseConfig.projectId = firebaseConfig.projectId || firebaseConfigJson.projectId;
+  firebaseConfig.appId = firebaseConfig.appId || firebaseConfigJson.appId;
+  firebaseConfig.apiKey = firebaseConfig.apiKey || firebaseConfigJson.apiKey;
+  firebaseConfig.authDomain = firebaseConfig.authDomain || firebaseConfigJson.authDomain;
+  firebaseConfig.firestoreDatabaseId = firebaseConfig.firestoreDatabaseId || firebaseConfigJson.firestoreDatabaseId;
+  firebaseConfig.storageBucket = firebaseConfig.storageBucket || firebaseConfigJson.storageBucket;
+  firebaseConfig.messagingSenderId = firebaseConfig.messagingSenderId || firebaseConfigJson.messagingSenderId;
+}
 
 // Initialize the Firebase app with secure configuration - serverless safe
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -68,8 +86,10 @@ let resolvedDbId = getEnvValue('VITE_FIREBASE_FIRESTORE_DATABASE_ID');
 console.log('[Firestore Setup] VITE_FIREBASE_FIRESTORE_DATABASE_ID Env:', resolvedDbId);
 
 if (!resolvedDbId || resolvedDbId === '(default)' || resolvedDbId === 'default' || resolvedDbId.trim() === '') {
-  resolvedDbId = firebaseConfigJson.firestoreDatabaseId;
-  console.log('[Firestore Setup] Defaulting to JSON firestoreDatabaseId:', resolvedDbId);
+  resolvedDbId = hasEnvConfig ? undefined : firebaseConfigJson.firestoreDatabaseId;
+  if (!hasEnvConfig) {
+    console.log('[Firestore Setup] Defaulting to JSON firestoreDatabaseId:', resolvedDbId);
+  }
 }
 
 // In this environment, the custom named database ID must be used explicitly

@@ -33,7 +33,7 @@ service cloud.firestore {
 
     // Rules for global curated strategies
     match /global_strategies/{globalId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isSignedIn() && request.auth.uid == "JFWUyAe7nxeoyhooaPtTH3eEFWE3";
     }
 
