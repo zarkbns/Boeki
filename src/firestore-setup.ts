@@ -104,9 +104,15 @@ console.log('[Firestore Setup] Final dbName used for initializeFirestore:', dbNa
 
 let tempDb;
 try {
-  tempDb = initializeFirestore(app, {
-    ignoreUndefinedProperties: true
-  }, dbName);
+  if (dbName) {
+    tempDb = initializeFirestore(app, {
+      ignoreUndefinedProperties: true
+    }, dbName);
+  } else {
+    tempDb = initializeFirestore(app, {
+      ignoreUndefinedProperties: true
+    });
+  }
 } catch (e) {
   console.log('[Firestore Setup] initializeFirestore threw/already initialized, retrieving with getFirestore:', e);
   tempDb = dbName ? getFirestore(app, dbName) : getFirestore(app);
