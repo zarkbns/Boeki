@@ -85,11 +85,11 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 let resolvedDbId = getEnvValue('VITE_FIREBASE_FIRESTORE_DATABASE_ID');
 console.log('[Firestore Setup] VITE_FIREBASE_FIRESTORE_DATABASE_ID Env:', resolvedDbId);
 
+const isSandboxProject = firebaseConfig.projectId === firebaseConfigJson.projectId;
+
 if (!resolvedDbId || resolvedDbId === '(default)' || resolvedDbId === 'default' || resolvedDbId.trim() === '') {
-  resolvedDbId = hasEnvConfig ? undefined : firebaseConfigJson.firestoreDatabaseId;
-  if (!hasEnvConfig) {
-    console.log('[Firestore Setup] Defaulting to JSON firestoreDatabaseId:', resolvedDbId);
-  }
+  resolvedDbId = isSandboxProject ? firebaseConfigJson.firestoreDatabaseId : undefined;
+  console.log('[Firestore Setup] Resolved empty/default database ID. Sandbox environment:', isSandboxProject, '-> using resolvedDbId:', resolvedDbId);
 }
 
 // In this environment, the custom named database ID must be used explicitly
